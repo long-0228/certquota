@@ -1,0 +1,47 @@
+{
+  "schema": "certquota-publication-ci-v1",
+  "run_url": "https://github.com/long-0228/certquota/actions/runs/34040622682",
+  "tested_commit": "dfd58e1d56443a1ed0d0ef5940ebd067766979f8",
+  "jobs": [
+    {
+      "runner_label": "ubuntu-24.04",
+      "passed": true,
+      "is_linux": true,
+      "pytest_summary": "35 passed in 0.55s",
+      "independent_proofs_rechecked_locally": 3,
+      "core_source_bytes_match_original": true,
+      "wheel_sha256": "6c538e390f5bfe6001fa5b9d911ff5c8383ae2a8124f332a3db8e4c02347a8c2",
+      "artifact_zip_sha256": "e6f883d3e22753d2f8b413bbcc8a3853ede5278ea0dece4380c8530c114edbc4",
+      "python": "3.11.16 (main, Aug 13 2026, 02:46:14) [GCC 13.3.0]",
+      "platform": "Linux-6.17.0-1022-azure-x86_64-with-glibc2.39",
+      "numpy": "1.26.4",
+      "scipy": "1.15.3",
+      "problem_fingerprints": [
+        "54bbe0b9bea9cf001265a93408a4dc5de0e06f500d6d1c071986b06fdda05261",
+        "b84222b7d501365be3bf4562c2f5b9309dfc6b402da314c93c8a8aeff98f6175",
+        "93898d4df28c42fa6458dfcd2af130e0514f4581c323ebb4b9030bc6aad8f05c"
+      ]
+    },
+    {
+      "runner_label": "windows-2022",
+      "passed": true,
+      "is_linux": false,
+      "pytest_summary": "35 passed in 0.64s",
+      "independent_proofs_rechecked_locally": 3,
+      "core_source_bytes_match_original": true,
+      "wheel_sha256": "2ae1444d9a5977d1c3c5c20455eb9e2d4d179ed1b50c35fb93c4fc9d7c24832d",
+      "artifact_zip_sha256": "ed0b752869287056f39ebf5f0d154871a6b3fdf2995f54962c5d2ee475761f7f",
+      "python": "3.11.9 (tags/v3.11.9:de54cf5, Apr  2 2024, 10:12:12) [MSC v.1938 64 bit (AMD64)]",
+      "platform": "Windows-10-10.0.20348-SP0",
+      "numpy": "1.26.4",
+      "scipy": "1.15.3",
+      "problem_fingerprints": [
+        "009713816f980fbc512f56c885558ab4f109fd224a6a6df7ac51da6a0af80722",
+        "305eb3e4104562230ad737a9e45c1119829491efd436407e56947a8ac98f541d",
+        "e344dc129e23cf5c5634836507a7bdbf433808020e3f89a4c3e8be59bc5e0901"
+      ]
+    }
+  ],
+  "scope": "Isolated installed-wheel portability, not full historical benchmark replication",
+  "problem_note": "Examples are generated on each platform, not asserted bit-identical across platforms; exact fingerprints are recorded."
+}

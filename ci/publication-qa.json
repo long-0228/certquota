@@ -1,0 +1,30 @@
+{
+  "schema": "certquota-publication-local-qa-v1",
+  "pdf_pages": 51,
+  "pdf_sha256": "7c2236a2fa9ee23b5389132b53d92460bb88822929f0b8882e4d6a5217e7bb24",
+  "portable_source_files": 23,
+  "included_figures": 8,
+  "clean_source_build_passed": true,
+  "all_51_pages_text_equal_to_clean_build": true,
+  "internal_links_checked": 13,
+  "privacy_files_scanned": 64,
+  "source_core_bytes_unchanged": true,
+  "visual_review": {
+    "pages": [
+      1,
+      31,
+      32,
+      50,
+      51
+    ],
+    "passed": true,
+    "last_page_adjustment": "Declarations kept together on a dedicated final page"
+  },
+  "browser_review": {
+    "actual_chrome_desktop_preview": true,
+    "hero_and_evidence_inspected": true
+  },
+  "arxiv_uploaded": false,
+  "arxiv_blocker": "math.OC endorsement required",
+  "arxiv_processor_preview": "not yet reachable; do not infer from local build"
+}

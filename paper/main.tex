@@ -1,0 +1,1571 @@
+\RequirePackage{fix-cm}
+\documentclass[smallextended,envcountsect]{svjour3}
+
+\smartqed
+\usepackage{amsmath,amssymb,mathtools}
+\usepackage{array,booktabs}
+\usepackage{graphicx}
+\usepackage[section]{placeins}
+\usepackage{enumitem}
+\usepackage{microtype}
+\setlength{\emergencystretch}{1em}
+\usepackage{xcolor}
+\usepackage[numbers,sort&compress]{natbib}
+\usepackage[colorlinks=true,allcolors=blue]{hyperref}
+\usepackage[nameinlink,noabbrev]{cleveref}
+\hypersetup{
+  pdftitle={A Solver-Independent, Fixed-Topology Linear-Work Endpoint Certificate for Sparse Reciprocal Transportation},
+  pdfauthor={Long Li}
+}
+\journalname{Preprint}
+% Suppress the publisher's unassigned manuscript-number box in the preprint.
+\renewcommand{\makeheadbox}{}
+
+\spnewtheorem{assumption}[theorem]{Assumption}{\bfseries}{\itshape}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\cA}{\mathcal{A}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\one}{\mathbf{1}}
+\newcommand{\diag}{\operatorname{diag}}
+\newcommand{\cC}{\mathcal{C}}
+\newcommand{\cD}{\mathcal{D}}
+\newcommand{\cF}{\mathcal{F}}
+\newcommand{\cG}{\mathcal{G}}
+\newcommand{\cS}{\mathcal{S}}
+\newcommand{\norm}[1]{\left\lVert#1\right\rVert}
+
+% Release-bound empirical values.  The generating script and submission audit
+% regenerate this file from the A42 confirmatory analyses.
+\input{a42_results_macros.tex}
+\input{a43_results_macros.tex}
+\input{a45_results_macros.tex}
+
+\input{submission_metadata}
+
+\title{A Solver-Independent, Fixed-Topology Linear-Work Endpoint Certificate
+for Sparse Reciprocal Transportation}
+\titlerunning{Fixed-Topology Endpoint Certification for Reciprocal Transport}
+\author{\PaperAuthorList}
+\authorrunning{\PaperAuthorRunning}
+\institute{\PaperInstitute}
+\date{6 September 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Large sparse allocation solvers return floating-point candidates whose
+marginals and optimality are only approximate.  This paper develops a
+solver-independent endpoint certificate for sparse reciprocal transportation,
+$\min_{z>0,Bz=\beta}\sum_e(c_ez_e+\mu_e/z_e)$ with $\mu_e>0$, directly on the
+original sparse arrays.  From any finite candidate potential, a reciprocal KKT
+allocation and canonical spanning-tree correction define an implicit exact-real
+allocation.  A signed, outward-rounded replay either rejects or proves strict
+positivity, exact feasibility for the represented marginals, and objective gap at most
+$\varepsilon$.  Soundness is independent of the candidate generator under an
+explicit binary64 and replay-ownership contract.  For a fixed candidate, the
+bound converges to the exact recovery gap as interval widths vanish.  With
+fixed-topology schedules, verification uses $O(m+n)=O(m)$ work and memory; each
+$m$-input grouped plan stores exactly $m-g$ additions for $g$ nonempty groups.
+CertQuota-V makes replay the sole authority over untrusted generators.
+Evaluation covers certificate sharpness, adversarial degree skew, verifier-only
+and complete-pipeline scaling, matched-accuracy independently checked conic
+bounds, dynamic tree policies, hard starts, and budget decisions on
+historical-only MovieLens workloads.
+The result is a reusable, structure-specific verified numerical primitive: it
+avoids an edgewise conic lift, does not trust solver status, and binds the
+feasibility and gap claims to the same recovered allocation.
+\keywords{certifying algorithms \and interval arithmetic \and convex network
+flow \and sparse transportation \and primal recovery \and reproducible
+numerical software}
+\subclass{90C25 \and 90C35 \and 65G20}
+\end{abstract}
+\section{Introduction}
+
+Sparse convex allocation appears in transportation, resource assignment, and
+sampling.  At scale, a solver ordinarily returns a floating-point point, a
+residual, and a status flag.  None alone establishes that the represented
+allocation is strictly inside its domain, satisfies its marginals exactly, and
+lies within a prescribed objective gap.  General verified-optimization
+machinery can address broader models, but a structure-specific endpoint check
+can be substantially smaller and can expose exactly which original data and
+floating-point operations carry authority.
+
+We develop such a check for the sparse reciprocal transportation problem
+\begin{equation}
+ P^\star=\inf_{z>0,\;Bz=\beta}P(z),\qquad
+ P(z)=\sum_{e\in E}\left(c_ez_e+\frac{\mu_e}{z_e}\right),
+ \quad \mu_e>0,
+ \label{eq:problem}
+\end{equation}
+where $B$ is an oriented incidence matrix of a connected bipartite graph with
+$m=|E|$ edges and $n$ vertices.  Throughout, $c$ is finite, every
+$\mu_e>0$, and $\one^\top\beta=0$.  The global candidate solvers are designed
+for instances having bipartite-sign marginals and a strictly positive feasible
+point.  The endpoint soundness theorem does not assume an external feasibility
+oracle: on acceptance, the recovered $Z>0$ itself discharges nonemptiness for
+the represented instance.
+
+The setting is deliberately narrower than general convex flow.  Newton and
+interior methods for separable network objectives are classical
+\citep{klincewicz1983,klincewicz1989}; specialized solvers exploit bipartite
+normal equations \citep{castro2021huge,wright2023direct}; and modern theory
+handles broader flow objectives in almost-linear time
+\citep{chen2025maxflow}.  Certifying algorithms and rigorous optimization
+postprocessing are established paradigms as well
+\citep{mcconnell2011certifying,jansson2004convex,jansson2007rigorous}.  We ask a
+different endpoint question: can an arbitrary finite candidate potential be
+checked on the original sparse edge arrays, with no appeal to the generator's
+status or stopping rule, while preserving support and using only linear work?
+
+The difficulty is not writing a real-arithmetic dual bound.  The endpoint must
+identify one positive exactly feasible primal object, prove the gap for that
+same object, preserve a prescribed sparse support, and carry every inequality
+through a finite replay without trusting a conic reduction or solver status.
+Generic conic verification can represent the problem with one cone block per
+edge. Earlier network-flow work already recovers primal feasibility from an
+arbitrary Lagrangian dual vector \citep{marklund2008early}; candidate independence
+alone is therefore not our distinction. The contribution here is a smaller
+original-array, finite-arithmetic contract for this reciprocal structure. Its value is judged
+as a reusable verification primitive and software interface, not as a new
+transport objective.
+
+Two identities make the answer possible.  First, a dual potential determines
+an edgewise reciprocal KKT allocation.  Second, the residual of that allocation
+can be routed uniquely over a fixed spanning tree.  The resulting correction
+restores the marginals without introducing an off-support edge, and its exact
+primal--dual gap is a sum of nonnegative edge terms.  Retaining the correction's
+sign inside an outward-rounded replay turns those identities into a sharp
+endpoint predicate: one accepted object simultaneously carries positivity,
+exact-real feasibility, and $\varepsilon$-optimality.  Candidate generation and
+authorization are therefore separate concerns.
+
+One motivating application is variance-aware multi-model federated learning
+(MMFL).  Each client makes one categorical decision among its eligible models,
+while both client activation budgets and model participation targets are fixed
+in expectation.  Conditional Horvitz--Thompson variance then produces the
+reciprocal term and the two families of quotas produce the two marginals.  This
+differs from formulations with client capacities and only one global
+participation total \citep{zhang2025optimal}.  The application motivates the
+objective and supplies a conditional-MSE endpoint; it is not needed by the
+certificate theorem.
+
+The paper answers three questions: what exact-real object an endpoint replay
+authorizes, how a binary64 implementation encloses that object in linear work,
+and whether separating a fast generator from strict authority remains useful at
+sparse-graph scale.  Our contributions are:
+\begin{enumerate}[leftmargin=*,itemsep=2pt]
+ \item We define a canonical implicit allocation from any finite dual candidate
+ and a support-preserving spanning-tree correction.  We prove that signed
+ endpoint acceptance implies strict positivity, exact-real marginal
+ feasibility, and objective gap at most $\varepsilon$, independently of how the
+ candidate was generated.
+ \item We give an executable original-array replay whose outward intervals bind
+ the domain, tree correction, positivity, and primal--dual identity to the same
+ recovered object; no edgewise conic lift or generator status carries
+ authority.
+ \item We prove fixed-candidate asymptotic completeness of the signed gap test
+ and bound the irreducible conservatism of its sign-oblivious predecessor.  The
+ distinction isolates interval-rounding overhead from loss caused by discarding
+ correction signs.
+ \item We give a fixed-DAG binary64 realization with explicit rounding and
+ ownership assumptions.  On a fixed topology it uses $O(m+n)=O(m)$ work and
+ memory.  Each $m$-input active-frontier grouped reduction stores exactly
+ $m-g$ addition nodes for $g$ nonempty groups, even under arbitrarily skewed
+ degrees.  A self-contained content-bound bundle lets a fresh process
+ reconstruct all replay inputs and issue a new authoritative decision. A
+ separate integer/rational checker evaluates the original primal and dual
+ objectives without importing the production verifier.
+ \item We implement the generate--certify--repair separation in CertQuota-V and
+ evaluate soundness gates, sharpness, adversarial storage, verifier-only and
+ complete-pipeline scaling, dynamic warm starts, named strict pipelines,
+ independently replayed conic candidates, and conditional-MSE sampling on
+ synthetic and real sparse supports.  A separately preregistered amendment
+ quantifies tree-choice sensitivity on identical candidates and exercises
+ prospective MovieLens inputs that never inspect post-cutoff ratings. An
+ exploratory revision adds matched-accuracy, independently witnessed conic
+ comparisons and an explicit rational-allocation budget decision interface.
+ \item As one motivating reduction, we specialize conditional
+ Horvitz--Thompson variance to independent categorical MMFL decisions and obtain
+ the reciprocal objective under two-sided \emph{expected} quotas.  This
+ application is not required by the endpoint theorem.
+\end{enumerate}
+
+\paragraph{Claim boundary.}
+The new object is the endpoint contract, not the reciprocal objective, Newton
+method, Laplacian Hessian, tree routing primitive, or general idea of posterior
+certification.  Runtime comparisons apply only to the named implementations,
+representation, hardware, and warm-start protocol in \cref{sec:experiments};
+they do not rank all transportation or verified-optimization solvers.
+Candidate-generator independence is a soundness statement about accepted
+outputs, not a speed claim or an adversarial process-isolation guarantee: a
+generator may supply arbitrary values and status but may not mutate verifier
+inputs, code, private capabilities, or floating-point controls during replay.
+The MMFL studies measure analytic conditional scheduler MSE, not trained-model
+accuracy, fairness, or time to target.
+
+\section{MMFL sampling under two-sided expected quotas}
+\label{sec:mmfl}
+
+Let $\cC$ be clients, $\cS$ models, and
+$E\subseteq\cC\times\cS$ the sparse eligibility graph.  In one round, client
+$i$ makes one categorical decision: it trains model $s$ with probability
+$p_{is}>0$ or is idle.  The expected quotas are
+\begin{equation}
+ \sum_{s:(i,s)\in E}p_{is}=r_i,\quad 0<r_i\le1,
+ \qquad
+ \sum_{i:(i,s)\in E}p_{is}=d_s>0,
+ \qquad \sum_i r_i=\sum_s d_s.
+ \label{eq:quotas}
+\end{equation}
+We assume the sparse support admits a strictly positive allocation
+$p^\circ>0$ satisfying these equalities.
+Thus the row constraint enforces at most one job per client, while $d_s$ is a
+model participation target only in expectation.  Requiring exact integer column
+counts in every round needs dependent rounding and a different covariance
+analysis \citep{gandhi2006rounding}.
+
+For a finite represented instance, $(r,d)$ in \cref{eq:quotas} follows the
+reduced-root convention of \cref{sec:recovery}: every client quota and every
+non-root model quota is retained as its exact represented value, while the
+distinguished model quota is defined by exact balance.  An independently
+supplied binary64 value for that root quota is diagnostic only.  Thus every
+``exact feasibility'' statement below refers to this represented quota vector,
+not to two potentially inconsistent floating-point totals.
+
+Let $u_{is}\in\R^k$ be the prospective local update and
+$\alpha_{is}\ge0$ its aggregation weight.  To state the oracle objective
+without anticipating unobserved randomness, define
+$\cA_t:=\sigma(\cF_t,\{u_{is},\alpha_{is}:(i,s)\in E\})$.  The probabilities
+$p_{is}$ are $\cA_t$-measurable.  Conditional on $\cA_t$, client decisions are
+independent across clients and, for every $(i,s)\in E$,
+$\Pr(Z_{is}=1\mid\cA_t)=p_{is}$; client $i$ is idle with probability $1-r_i$.
+With $Z_{is}$ the selection indicator, define
+\begin{equation}
+ U_s=\sum_{i:(i,s)\in E}\alpha_{is}u_{is},\qquad
+ \widehat U_s=\sum_{i:(i,s)\in E}
+ \frac{Z_{is}\alpha_{is}}{p_{is}}u_{is}.
+ \label{eq:ht}
+\end{equation}
+
+\begin{theorem}[Conditional Horvitz--Thompson variance identity]
+\label{thm:mmfl}
+Under the conditional inclusion probabilities and cross-client independence
+specified above,
+$\E[\widehat U_s\mid\cA_t]=U_s$ and
+\begin{equation}
+ \E\!\left[\norm{\widehat U_s-U_s}_2^2\mid\cA_t\right]
+ =\sum_{i:(i,s)\in E}\alpha_{is}^2\norm{u_{is}}_2^2
+ \left(\frac1{p_{is}}-1\right).
+ \label{eq:variance}
+\end{equation}
+For model weights $\omega_s>0$, edge costs $\bar c_{is}\ge0$, and
+$\gamma\ge0$, the weighted
+sum of \cref{eq:variance} plus
+$\gamma\E[\sum_{(i,s)\in E}\bar c_{is}Z_{is}\mid\cA_t]$ differs by a constant from
+\begin{equation}
+ \min_{p>0}\sum_{(i,s)\in E}
+ \left(\frac{\mu_{is}}{p_{is}}+c_{is}p_{is}\right)
+ \quad\text{s.t. \cref{eq:quotas}},
+ \label{eq:mmfl-transport}
+\end{equation}
+where $\mu_{is}=\omega_s\alpha_{is}^2\norm{u_{is}}_2^2$ and
+$c_{is}=\gamma\bar c_{is}$.
+\end{theorem}
+
+The proof is in \cref{app:mmfl}.  The exact identification with
+\cref{eq:problem} requires
+$\alpha_{is}\norm{u_{is}}_2>0$ on every declared edge.  We therefore define the
+studied instance only after choosing a support on which $\mu_{is}>0$.  A
+zero-weight eligibility relation lies outside that instance class: removing it
+is an application-level change of support that can alter the feasible set, and
+replacing it by a positive floor defines a surrogate objective.  Neither
+operation is an exact numerical preprocessing rule for \cref{eq:problem}.
+
+Exact update norms are also not normally known before scheduling.  We therefore
+distinguish a nondeployable current-norm oracle from stale-norm and coordinate
+proxies; a proxy allocation is optimal only for the surrogate weights supplied
+to it.  This statistical limitation is separate from the numerical validity of
+an accepted allocation.  A second distinction concerns representation: the
+endpoint certificate below binds an implicit exact-real allocation, whereas a
+conditional-MSE value computed from an emitted binary64 materialization belongs
+to that finite vector.  The latter must be used consistently as both the
+categorical inclusion law and the Horvitz--Thompson denominator; certificate
+acceptance alone does not verify a sampler implementation.
+\section{Dual candidate and exact-real tree recovery}
+\label{sec:recovery}
+
+Orient every edge from the client side to the model side, so $Bz=\beta=(r,-d)$.
+For the theorem, let $v_0$ be a distinguished root.  The mathematical input is
+the $n-1$ vector of independent binary64 quotas
+$\bar\beta_{V\setminus\{v_0\}}$.  It retains those components as exact dyadics
+and defines the root in exact real arithmetic by
+\begin{equation}
+ \beta_v:=\bar\beta_v\ (v\ne v_0),\qquad
+ \beta_{v_0}:=-\sum_{v\ne v_0}\bar\beta_v,\qquad
+ \Delta_{\rm root}:=\beta_{v_0}-\bar\beta_{v_0}.
+ \label{eq:root}
+\end{equation}
+The recommended public constructor accepts only those $n-1$ independent values
+and derives the root.  For backward compatibility, the full-vector constructor
+fixes $v_0=n-1$, rejects nonfinite entries and a declared imbalance larger than
+$10^{-9}\max\{1,\norm{\bar\beta}_1\}$, then stores the supplied root, an
+\texttt{fsum}-based binary64 representative of the implied root, and a rounded
+adjustment diagnostic $\widehat\Delta_{\rm root}$.  That compatibility value is
+not an independent constraint.  The exact-real
+$\Delta_{\rm root}$ in \cref{eq:root} is a mathematical definition reconstructed
+from the independent entries during strict replay; it is not the stored
+diagnostic.  The constructor does not decide general sparse transportation
+feasibility.  Experimental generators numerically seed quotas from a positive
+binary64 planted flow, but its rounded marginals are not asserted to equal
+$Bx$ in exact-real arithmetic after the represented-root convention is imposed.
+For every reported accepted instance, endpoint recovery itself supplies a
+strictly positive exactly feasible $Z(P,y,T)$.  Other violations may lead only
+to input rejection, certificate rejection, or explicit solver failure, never
+to a strict accepted allocation.  All strict claims refer
+to $\beta$ in \cref{eq:root}, not to the independently rounded vector
+$\bar\beta$.
+Operationally, the strict replay need not materialize the generally
+non-binary64 root quota: it computes every non-root residual interval and
+defines the root residual interval as the directed negative sum of those
+intervals.  This is algebraically equivalent to the exact-real root convention.
+
+For any stored candidate potential $y$, interpreted as an exact dyadic vector,
+set
+\begin{equation}
+ q(y)=c-B^\top y,\qquad
+ x_e(y)=\sqrt{\mu_e/q_e(y)},\qquad
+ g(y)=Bx(y)-\beta.
+ \label{eq:dual-state}
+\end{equation}
+When $q>0$, a dual lower bound is
+\begin{equation}
+ D(y)=\beta^\top y+2\sum_e\sqrt{\mu_eq_e(y)}.
+ \label{eq:dual}
+\end{equation}
+Fix a spanning tree $T$.  Because $g$ is exactly balanced under
+\cref{eq:root}, there is a unique tree-supported flow $h_T(y)$ satisfying
+$Bh_T(y)=-g(y)$.  Computing a balanced flow on a tree is classical
+\citep{ahuja1993network}; our use combines that routing primitive with the
+reciprocal primal--dual identity and an executable outward-rounded certificate.
+Define the canonical recovered object
+\begin{equation}
+ Z(P,y,T):=x(y)+h_T(y).
+ \label{eq:implicit-z}
+\end{equation}
+This is an \emph{implicit exact-real allocation}.  It is represented by the
+problem, candidate, tree, and certificate.  A downstream binary64 array
+$\widehat z$ materializes the same formula numerically, but it is not asserted
+to satisfy $B\widehat z=\beta$ bit for bit; its measured marginal residual is
+always reported.
+
+\section{Candidate-generator-independent endpoint verification}
+\label{sec:verifier}
+
+The authoritative verifier uses outward rounding to prove: (i) $q_e>0$;
+(ii) lower bounds $\ell_e\le x_e(y)$; (iii) signed enclosures
+$H_e=[\underline h_e,\overline h_e]\ni h_{T,e}(y)$; (iv) lower
+bounds
+\[
+ \underline z_e:=\operatorname{down}(\ell_e+\underline h_e)>0
+ \quad(e\in T)
+\]
+on the recovered allocation; and (v), with
+$a_e:=\max\{|\underline h_e|,|\overline h_e|\}$,
+\begin{equation}
+ \Gamma_U:=\operatorname{up}\!\sum_{e\in T}
+ \frac{\mu_ea_e^2}{\ell_e^2\underline z_e}\le\varepsilon.
+ \label{eq:gamma}
+\end{equation}
+Non-tree correction coordinates are exactly zero.  The operation
+$\operatorname{up}$ denotes an outward upper evaluation of the complete
+reduction DAG, not merely a final rounded sum.
+
+\paragraph{\textnormal{\textsc{EndpointVerify}}$(P,y,T,\varepsilon)$.}
+The authoritative routine is the following fixed decision procedure.
+\begin{enumerate}[leftmargin=*,itemsep=1pt]
+ \item Validate dimensions, finite inputs, $\mu>0$, the root convention, and
+ that $T$ spans the declared graph; otherwise do not authorize a return.  The
+ low-level API may raise on malformed input.
+ \item Evaluate outward intervals for every slack $q_e$; reject unless each
+ lower endpoint is positive.  Evaluate intervals for $x$ and for the grouped
+ residual $g=Bx-\beta$ using the precompiled reduction DAGs.
+ \item Route the residual interval over $T$ to enclose the unique tree flow
+ $f_T$ satisfying $Bf_T=g$, retain the signed enclosure
+ $H_e=-F_e$ for $h_T=-f_T$, and reject unless every outward lower bound
+ $\underline z_e=\operatorname{down}(\ell_e+\underline h_e)$ is positive.
+ \item Evaluate the complete outward gap bound \cref{eq:gamma}.  Return
+ \textsc{accept} exactly when $\Gamma_U\le\varepsilon$; otherwise return
+ \textsc{reject}.  The logical acceptance trace contains
+ $(P,y,T,\varepsilon,\Gamma_U,
+ \{\ell_e,\underline h_e,\overline h_e,\underline z_e\})$.  The software returns an
+ immutable replay key and compact summary rather than retaining both full
+ edgewise interval arrays.
+\end{enumerate}
+Every exceptional arithmetic event is a rejection.  A binary64 materialization
+may accompany an accepted tuple, but it is not the object authorized by this
+procedure.  \textsc{SolveVerifyRepair} catches low-level exceptions and records
+an explicit failed attempt with no allocation; the compact result does not
+retain a primitive-level rejection reason code.  \Cref{app:ieee-predicate}
+gives the primitive-level replay.
+
+\begin{theorem}[Solver-independent endpoint soundness]
+\label{thm:soundness}
+Let $P$ be a validated represented instance of \cref{eq:problem}: its declared
+graph is connected, its arrays are finite with $\mu_e>0$, and its marginals use
+the reduced-root convention \cref{eq:root}.  Let $T$ be a validated spanning
+tree of that graph, let $0<\varepsilon<+\infty$, and let $y$ be any finite
+candidate array.  Under the execution contract in
+\cref{assump:ieee-execution}, if the authoritative verifier accepts
+$(P,y,T,\varepsilon)$, then $Z(P,y,T)$ is strictly positive,
+$BZ(P,y,T)=\beta$ in exact-real arithmetic, and
+\begin{equation}
+ P(Z(P,y,T))-P^\star\le\Gamma_U\le\varepsilon.
+ \label{eq:sound-gap}
+\end{equation}
+The conclusion is independent of how accurately, deterministically, or
+successfully $y$ was generated, subject to the replay ownership and arithmetic
+contract.
+\end{theorem}
+
+\begin{proof}
+The executable-to-real bridge is \cref{lem:ieee-inclusion}: on every accepting
+replay, each interval used below contains its exact-real DAG value.  The domain
+ bounds therefore make $x(y)$ positive.  On a tree edge,
+ $x_e+h_e\ge\ell_e+\underline h_e\ge\underline z_e>0$; non-tree entries
+ remain $x_e>0$.  By construction,
+$B(x+h_T)=\beta+g-g=\beta$.  Thus acceptance itself supplies a strictly
+positive feasible point.  In particular, for every left vertex $i$,
+\[
+ \beta_i=\sum_{e\ni i}Z_e>0.
+\]
+Consequently every $\widetilde z\ge0$ with $B\widetilde z=\beta$ satisfies
+$0\le\widetilde z_{is}\le\beta_i$; the nonnegative feasible closure is
+therefore nonempty and compact.  Extending $P$ by $+\infty$ whenever an edge
+coordinate is zero, the reciprocal barrier gives attainment in the positive
+interior, and strict convexity gives uniqueness.  For every positive feasible
+$u$, coordinatewise minimization of the Lagrangian gives $P(u)\ge D(y)$, so in
+particular $P^\star\ge D(y)$.  For $z=x+h_T$, feasibility and
+$q_e=\mu_e/x_e^2$ give
+\begin{align}
+ P(z)-D(y)
+ &=\sum_e\left(q_ez_e+\frac{\mu_e}{z_e}
+              -2\sqrt{\mu_eq_e}\right) \\
+ &=\sum_e\frac{\mu_eh_e^2}{x_e^2(x_e+h_e)}.
+ \label{eq:gap-identity}
+\end{align}
+ Weak duality and the certified inequalities bound each nonzero term by the
+ corresponding summand of \cref{eq:gamma}: its numerator contains $h_e^2$,
+ while $x_e\ge\ell_e$ and $x_e+h_e\ge\underline z_e$.  The outward reduction contains their
+ sum.  No step uses how $y$ was obtained.
+\end{proof}
+
+\begin{proposition}[Fixed-DAG interval continuity and fixed-candidate completeness]
+\label{prop:asymptotic-completeness}
+Fix $(P,y,T)$ with $q(y)>0$ and $Z(P,y,T)>0$.  Consider interval
+evaluations of the same finite expression DAG, indexed by $k$.  For every
+exact-real node value $v$, require its enclosure $I_{k,v}$ to satisfy
+$v\in I_{k,v}$ and $\operatorname{diam}(I_{k,v})\to0$.  For all sufficiently
+large $k$, the domain and positivity denominators are positive; let
+$\Gamma_{U,k}$ denote the resulting upper gap endpoint.  Then
+$\Gamma_{U,k}\ge G(y,T)$ for every such $k$ and
+$\Gamma_{U,k}\to G(y,T)$, where
+\begin{equation}
+ G(y,T):=P(Z(P,y,T))-D(y)
+ =\sum_{e\in T}\frac{\mu_eh_e^2}{x_e^2(x_e+h_e)}.
+ \label{eq:exact-recovery-gap}
+\end{equation}
+Consequently, if $G(y,T)<\varepsilon$, every sufficiently narrow member of
+this interval-evaluation family accepts.  A fixed binary64 replay remains
+deliberately fail-closed and may
+reject such a candidate.  No nesting or monotonic decrease of the interval
+endpoints is assumed.
+\end{proposition}
+
+The sign retention is essential for this conclusion.  The legacy
+sign-oblivious predicate first requires $x_e-|h_e|>0$ on every tree edge.
+If $\rho:=\max_{e\in T}|h_e|/x_e\ge 1$, that positivity gate rejects
+(equivalently, set $\Gamma_{\rm abs}=+\infty$).  Only when $\rho<1$ does its
+limiting bound equal
+\begin{equation}
+ \Gamma_{\rm abs}(y,T):=
+ \sum_{e\in T}\frac{\mu_eh_e^2}
+ {x_e^2(x_e-|h_e|)}.
+ \label{eq:limiting-conservative-gap}
+\end{equation}
+and then
+\begin{equation}
+ G(y,T)\le\Gamma_{\rm abs}(y,T)
+ \le\frac{1+\rho}{1-\rho}\,G(y,T).
+ \label{eq:absolute-sharpness}
+\end{equation}
+Thus the old bound is asymptotically sharp as $\rho\to0$, but it can remain
+strictly conservative at any fixed nonzero correction.  Proofs of both claims
+are in \cref{app:soundness}.
+
+\begin{corollary}[Generate--certify--repair]
+\label{cor:wrapper}
+Consider any finite or adaptive sequence of candidate generators, optionally
+ending with any fallback generator whose candidate is replayed by
+\textnormal{\textsc{EndpointVerify}}.  A wrapper that returns only the first
+endpoint-accepted candidate returns an $\varepsilon$-optimal implicit allocation.
+Generator failure and verifier false rejection affect completeness and runtime,
+not soundness.
+\end{corollary}
+
+\subsection{Linear endpoint replay}
+
+For a fixed graph and tree, we precompile stable client and model grouped-sum
+schedules, balanced pairwise scalar-reduction DAGs, and each tree level's active
+parents and child groups.  Numeric interval endpoints are recomputed for every
+candidate and never reused across iterates.  A verification then uses $O(m)$
+slack and square-root interval operations, $O(m+n)$ grouped accumulation,
+$O(n)$ tree routing, and $O(n)$ positivity, gap, and scalar-reduction work.
+For any one grouped reduction plan with $m$ inputs partitioned into nonempty
+groups of degrees $d_1,\ldots,d_g>0$, the active-frontier compiler creates
+exactly $\sum_j(d_j-1)=m-g$ addition nodes: a completed singleton leaves the
+frontier rather than being copied through the remaining levels.  The count is
+per grouped plan, not the total over all incidence, tree-level, and scalar
+plans.  Applied plan by plan, it rules out a hidden $m\log d_{\max}$ storage
+term on skewed topologies.
+
+\begin{theorem}[Linear endpoint replay]
+\label{thm:linear}
+On a fixed connected topology with precompiled schedules, endpoint verification
+uses $O(m+n)=O(m)$ arithmetic work and $O(m+n)$ memory under the fixed-width
+binary64 unit-cost arithmetic/word model.  Schedule construction, candidate
+generation, and optional arbitrary-precision replay are outside this bound.
+\end{theorem}
+
+For context, \cref{app:linear} also records a restricted fresh-array probe
+observation: an accepting edgewise dual-slack verifier must inspect every
+slack-sensitive cost word.  This is not a lower bound for arbitrary certificate
+systems or candidate generation.
+
+\section{CertQuota-V: fast candidates, strict authority}
+\label{sec:algorithm}
+
+\paragraph{\textnormal{\textsc{SolveVerifyRepair}}$(P,T,\varepsilon)$.}
+Given an ordered, finite list of untrusted candidate generators
+$(\cG_1,\ldots,\cG_K)$, the wrapper executes:
+\begin{enumerate}[leftmargin=*,itemsep=1pt]
+ \item for $k=1,\ldots,K$, request a candidate $y_k$ and retain the generator
+ status and diagnostics;
+ \item if generation fails or $y_k$ is nonfinite, retain an explicit failed
+ attempt and continue;
+ \item call \textsc{EndpointVerify}$(P,y_k,T,\varepsilon)$ and return only its
+ first accepted implicit allocation and certificate;
+ \item if all attempts reject or fail, return an explicit failure record with
+ the complete attempt log and no allocation.
+\end{enumerate}
+Thus the wrapper is complete only to the extent that one listed generator enters
+the accepted set, while its returned-object soundness is independent of every
+generator.
+
+CertQuota-V separates generation from authority.  Its frozen implementation uses
+the following cascade:
+\begin{enumerate}[leftmargin=*,itemsep=2pt]
+ \item run damped Newton with a matrix-free Jacobi preconditioner to target
+ $\varepsilon/16$, then perform an independent endpoint replay;
+ \item after rejection, run a tighter PyAMG candidate \citep{bell2023pyamg} to target
+ $\varepsilon/256$ and replay the verifier;
+ \item when the reduced dimension is at most 5,000, try a sparse-direct repair;
+ \item try reciprocal alternate scaling; and
+ \item invoke CertQuota-S, the interval-screened Newton candidate generator,
+ as the final repair/audit mode; its return still requires a fresh terminal
+ endpoint replay.
+\end{enumerate}
+Every branch is an untrusted proposal.  Sparse-direct, alternate-scaling, and
+fallback status codes cannot bypass \cref{thm:soundness}.  An invalid or rejected
+candidate produces another attempt or an explicit failure record; it never
+produces a fabricated allocation.
+
+The common fast case has one candidate solve, one recovery-only interval state,
+one endpoint certificate, and one binary64 materialization.  The returned strict
+object remains $Z(P,y,T)$ in \cref{eq:implicit-z}; materialization time and
+$\norm{B\widehat z-\beta}_1$ are separate fields.  The authority contract is
+candidate-generator-independent: IEEE-V evaluates the endpoint DAG with directed binary64 rounding,
+while Arb-V evaluates the same mathematical test using 70-decimal-digit Arb ball
+arithmetic \citep{johansson2017arb}.
+Accordingly, experiments report strict-certificate coverage for the implicit
+$Z$ separately from conditional MSE and marginal residuals evaluated at
+$\widehat z$; the former does not turn the latter into an interval-certified or
+exactly quota-feasible probability vector.
+
+\subsection{Candidate-path diagnostics are auxiliary}
+
+The endpoint theorem says nothing about intermediate iterates or global
+convergence of a candidate generator.  CertQuota-S uses the Laplacian Hessian
+$H=BW B^\top$ and conservative tree-energy bounds to screen a local Newton
+basin and inexact-direction residuals.  The exact-real recurrences, constants,
+and proofs are relegated to \cref{app:local}, together with the precise gap
+between the mathematical transition and its rounded implementation.
+
+These screens are useful for choosing a fallback, but they are intentionally
+not part of the endpoint contract.  A stored binary64 update may differ from
+the exact-real transition used by the local analysis; neither a basin screen,
+a forcing screen, nor a solver status authorizes the result.  Every candidate,
+including a CertQuota-S candidate, must pass a fresh terminal replay under
+\cref{thm:soundness}.  Keeping this material in the appendix separates the
+paper's primary contribution---a finite endpoint decision---from an optional
+candidate-generation path.
+
+\section{Finite-precision implementation}
+\label{sec:implementation}
+
+\paragraph{Arithmetic contract.}
+Stored binary64 inputs are interpreted as exact dyadic numbers.  Directed
+rounding encloses subtraction, square root, grouped incidence products, tree
+flows, positivity differences, and every term and reduction in
+\cref{eq:gamma}.  The root convention \cref{eq:root} is evaluated from the
+independent entries.  The soundness lemma assumes round-to-nearest binary64,
+gradual underflow, and correctly rounded primitive operations and square root.
+These semantics follow the declared IEEE~754 binary64 model
+\citep{ieee7542019}; they are assumptions of the theorem rather than facts
+inferred from a solver status.
+The timed IEEE path fails closed unless structured probes pass for the binary64
+layout, \texttt{nextafter} boundaries, ties-to-even, subnormal arithmetic,
+selected four-operation identities, and selected square roots.  It rechecks
+current-thread control sentinels at every public certificate entry, including
+prepared-state reuse.  These probes detect important violations but do not
+formally establish the assumptions over every input or future execution path.
+The IEEE path contains no hidden Arb call; Arb is a separately implemented
+audit backend, not a fully independent external baseline.
+
+\paragraph{Topology versus numeric state.}
+Only immutable topology schedules are cached.  We content-validate a common
+topology owner for dynamic problems with identical endpoints, prewarm the shared
+problem and tree plans outside method timing, and separately report cold-plan
+construction.  Stepwise code whose cache is keyed by current problem identity is
+also prewarmed before the rotated method block.  Numeric slack, root, residual,
+tree-flow, and gap intervals are freshly computed for every candidate.
+
+\paragraph{Portable third-party replay.}
+An in-process certificate summary is capability-bound and deliberately loses
+authority when serialized.  The public
+\texttt{certquota-}\allowbreak\texttt{endpoint-}\allowbreak
+\texttt{replay-v1} bundle instead stores
+the exact binary64
+problem arrays (including the declared compatibility root), candidate, tree,
+tolerance, backend request, and a canonical SHA-256 payload binding.  The
+installed \texttt{certquota-verify} command reconstructs new immutable problem
+and router objects, checks their fingerprints, and reruns the strict backend.
+Only the newly issued certificate can authorize acceptance; the stored summary
+is used solely to detect decision disagreement.  Thus a downstream reviewer can
+carry and replay the witness without trusting a pickle, Python object identity,
+or the original process.
+
+\paragraph{Independent conic candidate.}
+For small and medium references we introduce epigraph variables $x_e,t_e>0$
+with $x_et_e\ge1$, represented by the standard cone
+\begin{equation}
+ \norm{(2,x_e-t_e)}_2\le x_e+t_e,
+ \qquad Bx=\beta,\qquad
+ \min c^\top x+\mu^\top t.
+ \label{eq:rsoc}
+\end{equation}
+CVXPY \citep{diamond2016cvxpy} constructs \cref{eq:rsoc}, and Clarabel
+\citep{goulart2026clarabel} supplies an equality-dual candidate.  Objective and
+row scaling, including the Lagrangian sign, are undone
+to recover the canonical $y$ before the same IEEE endpoint verifier is applied.
+The derivation is given in \cref{app:conic}.
+
+\section{Experimental protocol}
+\label{sec:experiments}
+
+\paragraph{Evidence authority.}
+The principal results belong to the clean A42 confirmatory execution.  A source
+manifest is created once after code and protocol freeze and before any formal
+producer runs; each raw file records its digest.  Earlier development releases
+remain immutable, and no prior raw row, timing, aggregate, bootstrap draw,
+figure, or table is pooled into A42.  Analyses fail closed on source or raw-file
+hashes, schemas, numeric integrity, planned-cell coverage, and certificate
+authority.  Manuscript numbers and figures are generated from the twelve
+validated analyses, and a final read-only audit recomputes those analyses,
+rebuilds every figure, runs the full tests and package checks, and compiles the
+paper from an isolated source copy.  The exact closure and commands are recorded
+in \cref{app:protocol}.
+
+A43 is a disjoint preregistered reviewer-obstacle amendment, not an extension of
+the A42 population.  Its source manifest binds 139 executable and protocol
+files before either formal panel runs.  It retains all four tree choices,
+including negative outcomes, and derives the historical MovieLens workload
+only from rows at or before each cutoff.  Its raw records, summaries, portable
+replay, and deterministic recomputation are bound separately; no A43 row is
+used in an A42 estimate or confidence interval.
+
+\paragraph{Timing and accuracy rules.}
+Runs use a single-thread process contract on a 12-core AMD Ryzen 9 5900X
+workstation with 64 GiB RAM, Python 3.10, NumPy 1.26.4, SciPy 1.11.4,
+PyAMG 5.2.1, CVXPY 1.6.5, and python-flint 0.9.0.  Candidate or method order
+rotates within paired rounds.  In method comparisons, topology construction and
+plan prewarming are excluded; complete-pipeline timing begins immediately before
+\texttt{solve\_verified} and ends after binary64 materialization.  Cold topology
+and plan construction are reported separately.  Accuracy requires positivity,
+normalized marginal $\ell_1$ residual at most $10^{-9}$, relative objective gap
+at most $10^{-8}$ when a planted reference is available, and, for every strict
+method, a terminal endpoint acceptance.  Confidence intervals use 10,000
+graph-seed or sequence-cluster bootstrap resamples as appropriate.  Fitted
+runtime exponents are descriptive and are not substitutes for
+\cref{thm:linear}.
+
+\paragraph{Evaluation questions and panels.}
+The frozen panels address five distinct questions:
+\begin{enumerate}[leftmargin=*,itemsep=2pt]
+ \item \emph{Does the predicate fail closed, and where is it conservative?}
+ Fifty-four behavior cases cover direct acceptance, repair after rejection, and
+ domain-invalid candidates.  A separate high-precision sharpness panel compares
+ the exact recovery gap, the limiting sign-oblivious bound, the signed binary64
+ bound, and the legacy global-$\ell_1$ decision over frozen graph, perturbation,
+ and tolerance grids.
+ \item \emph{Do the claimed storage and work survive sparse-graph extremes?}
+ An adversarial grouped-reduction panel combines one giant group with singleton
+ groups through ten million inputs and checks the exact $m-g$ node count,
+ reference containment, and a linear byte bound.  Verifier-only scaling runs
+ from 30,000 to ten million edges.  Complete solve--verify--materialize scaling
+ uses three graph families, three seeds, and five sizes through three million
+ edges, for 45 setup cells and 135 timed measurements after excluded warm-ups.
+ \item \emph{What does strict authority cost across generators?}
+ The study contains 1,050 paired dynamic rounds at 100,000 edges, 75 paired
+ rounds for each of four named strict pipelines, a 45-cell internal conic
+ reference, and an 18-cell external conic stress replay.  A standalone 256-bit
+ Arb implementation replays conic candidate extraction, Kruskal tree
+ repair, and the primal--dual gap without importing the production solver,
+ verifier, interval, or tree modules; designated rejection cases receive an
+ additional 384-bit replay.  This is a numerical independence audit, not a
+ generic verified-conic baseline or a timing ranking.
+ \item \emph{Does the reciprocal objective express a meaningful sampling
+ tradeoff?}  A synthetic panel crosses 32 sparse graph cells, five independent
+ graph/update replicates, 20 burn-in fields, 20 evaluation fields, and 11
+ policies.  Two MovieLens-1M panels use the official interaction archive: one
+ keeps its user--movie topology with planted numerical quantities, and one
+ constructs a user--genre eligibility graph from temporal rating summaries and
+ compares current, historical, and equal-weight policies under equal and
+ popularity-aware expected quotas.
+ \item \emph{How much does tree choice matter, and can the public-data workload
+ be defined prospectively?}  A43 replays identical candidates through
+ input-order, maximum-conductance, minimum-conductance, and seeded-random trees
+ over 144 candidate--tolerance cells.  A separate MovieLens panel uses cutoff
+ quantiles 0.40, 0.50, and 0.60 and constructs support, $\mu$, quotas, start,
+ and tree without reading later ratings.  One accepted endpoint is exported as
+ a canonical replay bundle and checked in a fresh reconstruction.
+\end{enumerate}
+
+The sampling endpoint is the analytic conditional MSE in \cref{thm:mmfl}; the
+formal artifact records \texttt{monte\_carlo\_rounds}=0.  The MovieLens archive
+checksum and numeric seeds are fixed, no demographic fields are read, and the
+data are neither extracted nor redistributed.  The user--movie panel makes no
+recommendation-effect claim, while the user--genre study is a descriptive
+conditional-MSE case study rather than a neural-training or ranking evaluation.
+
+\section{Results}
+\label{sec:results}
+
+We organize the evidence around five questions: whether the endpoint authority
+fails closed and remains sharp; whether its implementation realizes the proved
+linear structure; what strict authority costs in complete dynamic pipelines;
+whether the resulting allocations improve the conditional-MSE objective for
+materialized probabilities; and how tree choice and prospectively constructed
+public-data inputs affect acceptance.  Unless stated otherwise, timings are
+single-thread wall times on the registered machine.  Scaling exponents and
+method timings are descriptive implementation measurements, not substitutes
+for \cref{thm:linear} or universal solver rankings.
+
+\subsection{Fail-closed authority and certificate sharpness}
+\label{sec:results-sharpness}
+
+The behavior experiment presents 54 candidates spanning direct acceptance,
+repairable rejection, and invalid-domain failure.  The verifier accepts 18
+directly, rejects and repairs 18 to strict endpoints, and returns explicit
+failure with no allocation for all 18 invalid-domain cases.  Hence all 36
+returned allocations have valid certificates, while no invalid candidate
+escapes the fail-closed path (\cref{fig:behavior}).
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.82\linewidth]{figures/a42/a42_certificate_behavior.pdf}
+\caption{A42 fail-closed behavior.  An initial rejection can lead to a
+separately verified repair; domain-invalid inputs produce no allocation.}
+\label{fig:behavior}
+\end{figure}
+
+A separate sharpness panel uses \AFTwoSharpnessRecords{} fixed candidates across
+three graph families, three scales, and seven perturbation radii.  Exact
+high-precision replay finds all \AFTwoSharpnessRecords{} recovered allocations
+positive, and the edgewise signed predicate proves positivity in all
+\AFTwoSharpnessRecords{} cases; the global $\ell_1$ screen proves only 158.
+Across relative tolerances $10^{-6},\ldots,10^{-14}$, neither predicate has a
+false accept.  Whenever the exact recovery gap is below a tested tolerance, the
+production signed predicate also accepts, giving 100\% recall on the applicable
+fixed-candidate cells.  At tolerance $10^{-10}$ alone, the edgewise predicate
+authorizes \AFTwoSharpEdgeOnlyAtTen{} candidates rejected by the global screen.
+
+The median signed IEEE bound divided by the exact recovery gap is
+$1.00000072$, whereas the median global-screen inflation is
+\texttt{\AFTwoGlobalInflationMedian}.  The exact-real structural bound has
+median inflation $1.00000097$, and its nonzero-radius excess has log--log slope
+$0.9883$ as the perturbation shrinks.  Signed cancellation does not change the
+accept/reject count on this grid, but it can reduce the same-enclosure
+absolute-correction bound to 0.112 of its value.  Zero-radius cells expose an
+unavoidable floating-point enclosure floor and are reported separately in the
+artifact.  These observations support the fixed-candidate sharpness mechanism
+in \cref{prop:asymptotic-completeness}; they do not establish completeness
+for arbitrary binary64 candidates.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/a42/a42_certificate_sharpness.pdf}
+\caption{Certificate sharpness against high-precision exact-recovery
+quantities.  The edgewise signed construction retains local correction
+information that the global $\ell_1$ screen discards.}
+\label{fig:sharpness}
+\end{figure}
+
+\subsection{Linear data structures, verifier scaling, and complete-pipeline scaling}
+\label{sec:results-scaling}
+
+The exact $m-g$ addition count matters on highly irregular incidence arrays.
+We therefore stress the grouped-reduction compiler with one giant group and
+many singleton groups at sizes from 30,000 to ten million.  All
+\AFTwoSkewRecords{} cells satisfy the node-count, workspace, storage,
+execution, and enclosure checks.  The 30 cells through 300,000 inputs also
+bitwise-match the independently executed levelwise reference; larger cells use
+the registered analytic/high-precision enclosure.  The plan uses 10 index
+bytes per input, below its 12-byte registered bound, and the descriptive time
+slope is \AFTwoSkewSlope.  In particular, completed singleton groups leave the
+active frontier instead of being carried through later levels
+(\cref{fig:skewed-reduction}).
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/a42/a42_skewed_reduction.pdf}
+\caption{Adversarial segmented-reduction stress.  Exact plan storage stays
+linear under the one-giant-group-plus-singletons degree pattern.}
+\label{fig:skewed-reduction}
+\end{figure}
+
+Verifier-only scaling contains 60 graph--seed cells and 180 timed replays.
+The seed-clustered exponent is \AFTwoVerifierSlope{} (95\% interval
+$[\AFTwoVerifierSlopeLow,\AFTwoVerifierSlopeHigh]$).  The interval excludes
+one, so we describe the measurement as near-linear rather than claiming an
+exact empirical exponent.  The largest instance has
+\AFTwoVerifierLargestEdges{} edges, a geometric-mean replay time of 3.182
+seconds, and \AFTwoVerifierLargestBytesPerEdge{} measured topology-plan bytes
+per edge.  Cold problem- and tree-plan construction is recorded but excluded
+from this verifier-only timing.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/a42/a42_verifier_scaling.pdf}
+\caption{Verifier-only scaling through ten million edges.  Points are
+graph-seed medians; the fitted interval clusters by seed.}
+\label{fig:scaling}
+\end{figure}
+
+The complete pipeline adds candidate generation, strict-state preparation, endpoint
+verification, fallback accounting, and materialization.  It contains
+\AFTwoPipelineRecords{} records: 45 setup/warmup cells and
+\AFTwoPipelineMeasurements{} timed measurements across three graph families.
+Every timed measurement returns a strict endpoint.  \Cref{tab:pipeline-scaling}
+shows the graph-family--seed median geometric means.  At three million edges
+the complete time is \AFTwoPipelineLargestGMSeconds{} seconds.  Its descriptive
+slope, \AFTwoPipelineSlope, is higher than the verifier-only slope; candidate
+generation consumes a mean fraction \AFTwoPipelineCandidateShare{} of wall
+time, versus \AFTwoPipelineVerifyShare{} for verification.  This phase profile
+is consistent with, but does not by itself explain, the slope difference.  The
+pipeline slope was explicitly not a publication gate.  Here ``complete'' means
+the public \texttt{solve\_verified} call through returned materialization after
+cold graph, router, and topology-plan setup; it is not first-use end-to-end
+latency.
+
+\begin{table}[t]
+\centering
+\caption{A42 complete solve--verify--materialize scaling.  Each size aggregates
+nine graph-family--seed medians; all \AFTwoPipelineTimedAccepts{} timed
+measurements are endpoint-accepted.}
+\label{tab:pipeline-scaling}
+\small
+\begin{tabular}{rr}
+\toprule
+Edges & GM complete-pipeline seconds \\
+\midrule
+30,000 & 0.06005 \\
+100,000 & 0.15190 \\
+300,000 & 0.92186 \\
+1,000,000 & 3.05713 \\
+3,000,000 & \AFTwoPipelineLargestGMSeconds \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Together, the skew, verifier-only, and complete-pipeline panels distinguish
+three claims that are often conflated: exact linear plan size, near-linear
+observed verifier time, and the larger cost of whatever candidate generator is
+placed in front of the verifier.
+
+\subsection{Dynamic and strict-pipeline cost}
+\label{sec:results-dynamic}
+
+The dynamic panel evaluates 1,050 paired rounds at 100,000 edges.  CertQuota-V
+returns a strict, matched endpoint on every round with geometric-mean complete
+time \AFTwoDynamicVGMSeconds{} seconds.  The interval-screened stepwise strict
+pipeline takes 0.362664 seconds, so the paired V/stepwise ratio is
+\AFTwoDynamicVOverStepwise{} (95\% interval $[0.28449,0.29793]$).
+Uncertified damped Newton is faster at
+\AFTwoDynamicDampedGMSeconds{} seconds: V/damped is
+\AFTwoDynamicVOverDamped{} (95\% interval $[1.4354,1.4884]$).
+The latter returns numerically matched points but supplies no strict endpoint
+authority, and is therefore an overhead reference rather than a certified
+competitor.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/a42/a42_dynamic_runtime.pdf}
+\caption{Complete dynamic time and paired ratios.  The dashed line marks equal
+time; damped Newton is deliberately shown as an uncertified numerical
+reference.}
+\label{fig:dynamic}
+\end{figure}
+
+The warm-start basin screen passes only \AFTwoBasinPasses{} of
+\AFTwoBasinRounds{} rounds: all 300 smooth $10^{-3}$ updates and 420 non-jump
+shock-sequence rounds, but neither the 300 smooth $10^{-2}$ updates nor the 30
+shock jumps.  Nevertheless, the final endpoint verifier accepts
+\AFTwoEndpointAccepts{}/\AFTwoDynamicRounds{} CertQuota-V outputs.  Thus basin
+membership is a useful local diagnostic, not the authority for the returned
+allocation; the solve--verify cascade can recover outside that diagnostic
+region.
+
+All four named strict pipelines also certify and match each of 75 frozen
+100,000-edge rounds.  \Cref{tab:strict-pipelines} reports their descriptive
+cost.  CertQuota-V is the lowest-time implementation in this panel, but the
+other three reuse portions of our recovery or certification machinery, so the
+panel cannot support a general fastest-solver claim.  Alternate scaling is
+especially long-tailed: its median is
+\AFTwoStrictScalingMedianSeconds{} seconds, while its 90th and 95th percentiles
+are \AFTwoStrictScalingPninetySeconds{} and
+\AFTwoStrictScalingPninetyfiveSeconds{} seconds and its maximum is
+\AFTwoStrictScalingMaxSeconds{} seconds.
+
+\begin{table}[t]
+\centering
+\caption{Named strict pipelines at 100,000 edges.  Ratios are paired method
+time divided by CertQuota-V time.}
+\label{tab:strict-pipelines}
+\small
+\begin{tabular}{lrr}
+\toprule
+Strict pipeline & GM seconds & Method/V \\
+\midrule
+CertQuota-V & 0.110055 & 1.000 \\
+Stepwise interval screen & 0.400204 & 3.636 \\
+Alternate-scaling verified & \AFTwoStrictScalingGMSeconds & \AFTwoStrictScalingOverV \\
+Arb terminal replay & 2.34512 & 21.309 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/a42/a42_strict_comparisons.pdf}
+\caption{Descriptive ratios for the four named strict pipelines.  Their shared
+components limit the comparison to these executed implementations.}
+\label{fig:strict-comparisons}
+\end{figure}
+
+The conic experiments supply a more independent candidate source.  On 45
+small/medium internal cells, both CertQuota-V and Clarabel/CVXPY candidates
+receive endpoint certificates.  On the 18-cell external stress grid,
+CertQuota-V certifies 18/18, whereas Clarabel reports an optimal candidate on
+every cell but only 14/18 pass endpoint replay.  Consequently no strict
+external timing ratio is reported.  A standalone Arb implementation, sharing
+neither the production interval code nor tree router, reproduces all
+\AFTwoIndependentReplays{} decisions at 256 bits and the four rejections again
+at 384 bits.  In the rejected cells, its same-dual gap intervals lie wholly
+above the respective targets: lower endpoints
+$0.0532577,0.0499891,0.0382662,0.0302070$ versus targets
+$0.0254701,0.0262432,0.0262347,0.0256089$.  The production upper bounds exceed
+the independent values by at most $9.19\times10^{-8}$ percent.  Arb therefore
+diagnoses insufficient accuracy of the submitted dual witnesses, rather than
+rounding conservatism in the production certificate.  Recovered primals do
+pass against the planted reference dual, so the diagnosis does not imply that
+the raw primal coordinates are themselves unusable.
+
+\subsection{Materialized conditional-MSE case studies}
+\label{sec:results-mse}
+
+The synthetic sampling panel contains 3,200 quota-matched analytic records per
+policy and 32,000 nonuniform solves.  All 32,000 emitted probability vectors
+have strict endpoint certificates; 20 attempted candidates are rejected and
+10 records are repaired by a later cascade stage.  The maximum certified
+objective-gap upper bound is $1.07\times10^{-12}$ and the maximum measured
+normalized marginal residual after binary64 materialization is
+$9.24\times10^{-13}$.  The registered row targets obey
+$\max_i r_i\le0.2$; together with this residual bound, every materialized row
+mass remains strictly below one.  The analytic MSE uses that same positive
+finite vector both as the categorical inclusion law and as the
+Horvitz--Thompson denominator.  The current-norm and age-one policies pass the two
+registered Holm-adjusted one-sided tests ($p_{\mathrm{adj}}=2.00\times10^{-4}$).
+
+The aggregate effect requires quota stratification
+(\cref{tab:mse-by-quota}).  With quota ratio one, the current oracle improves
+over quota-matched uniform sampling by only about 0.34\%; at ratio ten, the
+improvement is about 14.5\%.  An age-one proxy closely tracks the oracle in
+both regimes, while age 20 loses some benefit.  The coordinate proxy is harmful
+in both regimes.  Thus the overall oracle ratio
+\AFTwoEstimatorOracleMSE{} is not a quota-invariant effect.
+
+\begin{table}[t]
+\centering
+\caption{Conditional MSE divided by quota-matched uniform MSE at materialized
+binary64 probabilities.  The all-cells column is the fixed-grid geometric
+mean.}
+\label{tab:mse-by-quota}
+\small
+\begin{tabular}{lrrr}
+\toprule
+Policy & All cells & Quota ratio 1 & Quota ratio 10 \\
+\midrule
+Current-norm oracle
+ & \AFTwoEstimatorOracleMSE
+ & \AFTwoQuotaOneOracleMSE
+ & \AFTwoQuotaTenOracleMSE \\
+Historical norm, age 1
+ & \AFTwoEstimatorStaleOneMSE
+ & \AFTwoQuotaOneStaleOneMSE
+ & \AFTwoQuotaTenStaleOneMSE \\
+Historical norm, age 20
+ & \AFTwoEstimatorStaleTwentyMSE
+ & \AFTwoQuotaOneStaleTwentyMSE
+ & \AFTwoQuotaTenStaleTwentyMSE \\
+Coordinate proxy
+ & \AFTwoEstimatorCoordinateMSE
+ & \AFTwoQuotaOneCoordinateMSE
+ & \AFTwoQuotaTenCoordinateMSE \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/a42/a42_estimator_effects.pdf}
+\caption{Synthetic quota-matched conditional-MSE ratios.  Confidence intervals
+cluster by independent graph/update replicate; the dashed line is uniform
+sampling.}
+\label{fig:estimator-effects}
+\end{figure}
+
+MovieLens-1M contributes two deliberately limited forms of non-synthetic
+structure.  First, its \AFTwoMovieLensEdges{} observed user--movie interactions
+form a connected support with 6,040 users and 3,706 rated movies.  All
+\AFTwoMovieLensStrictAccepts{} planted numerical stress instances on that
+support certify, closing the synthetic-topology gap but making no recommender
+effect claim.
+
+Second, the user--genre panel retrospectively retains the common support having
+observations on both sides of each cutoff, then derives positive two-coordinate
+update proxies from historical and later temporal rating summaries.  Five temporal cutoffs,
+two expected-quota regimes, and three policies give 30 strict endpoints and
+\AFTwoGenreCells{} paired cells.  The current-weight oracle has overall
+conditional-MSE ratio \AFTwoGenreOracleOverEqual{} against equal edge weights;
+the historical proxy has ratio \AFTwoGenreHistoricalOverEqual{} against equal
+and \AFTwoGenreHistoricalOverOracle{} against the current oracle.  Under equal
+model quotas, the current/equal and historical/equal ratios are
+\AFTwoGenreEqualOracleOverEqual{} and 0.973635; under popularity-aware quotas
+they are \AFTwoGenrePopularityOracleOverEqual{} and 1.02778.  The historical
+proxy therefore helps relative to equal weights only in the equal-quota
+regime, while current weights help in both
+(\cref{fig:movielens-genre}).
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/a42/a42_movielens_genre_sampling.pdf}
+\caption{MovieLens user--genre conditional-MSE ratios over five temporal
+cutoffs on retrospectively selected common support.  This is a descriptive
+allocation study: it does not train a neural model or evaluate recommendation
+accuracy.}
+\label{fig:movielens-genre}
+\end{figure}
+
+The two case studies establish that certified reciprocal allocations can be
+materialized and evaluated on both controlled update fields and a public sparse
+interaction structure.  They do not establish federated-learning accuracy,
+training-time, or recommender-system state of the art.
+
+\subsection{Tree sensitivity and a historical-only public workload}
+\label{sec:results-a43}
+
+The disjoint A43 amendment first holds each candidate fixed and changes only
+the spanning tree.  Its 36 graph--candidate pairs cross three graph families,
+two scales, three seeds, and two registered perturbation radii; four tolerances
+and four preregistered tree rules produce \AFThreeTreeRecords{} strict replays.
+Every replay proves positivity, so tree choice does not alter the soundness
+theorem.  It does materially alter sharpness: \AFThreeTreeDisagreements{} of
+\AFThreeTreeCells{} candidate--tolerance cells have different acceptance
+decisions across trees.  The median and 95th-percentile within-cell ratios of
+largest to smallest finite gap bound are \AFThreeTreeGapRatioMedian{} and
+\AFThreeTreeGapRatioPninetyfive{}.  The registered tree-insensitivity gate
+therefore fails by a wide margin.
+
+\begin{table}[t]
+\centering
+\caption{A43 spanning-tree sensitivity on identical candidates.  Positivity
+is certified in all 144 replays for every rule; acceptance additionally
+requires the registered objective tolerance.  The last column is the median
+maximum tree-edge correction divided by the uncorrected allocation.}
+\label{tab:tree-sensitivity}
+\small
+\begin{tabular}{lrrr}
+\toprule
+Tree rule & Accepted & Positive & Median relative correction \\
+\midrule
+Input order & \AFThreeTreeInputAccepts/144 & 144/144
+ & \AFThreeTreeInputCorrectionMedian \\
+Maximum conductance & \AFThreeTreeMaxConductanceAccepts/144 & 144/144
+ & \AFThreeTreeMaxConductanceCorrectionMedian \\
+Minimum conductance & \AFThreeTreeMinConductanceAccepts/144 & 144/144
+ & \AFThreeTreeMinConductanceCorrectionMedian \\
+Seeded random & \AFThreeTreeRandomAccepts/144 & 144/144
+ & \AFThreeTreeRandomCorrectionMedian \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Maximum-conductance Kruskal is never rejected in a cell where another rule is
+accepted.  It accepts all 36 candidates at each of relative tolerances
+$10^{-10}$, $10^{-8}$, and $10^{-6}$, and 18 of 36 at $10^{-12}$, for
+\AFThreeTreeMaxConductanceAccepts{}/144 overall.  This is an empirical selection
+rule, not a theorem that it minimizes the certificate bound.  For new
+workloads we therefore recommend selecting a maximum-conductance tree from the
+candidate state, then compiling and freezing that tree before endpoint replay.
+Its construction cost is outside the fixed-topology linear-work claim and must
+be reported separately.
+
+The second A43 panel removes future-dependent support selection.  At each
+cutoff it reads only historical MovieLens rows, retains user--genre pairs with
+at least two historical ratings in the largest connected component, derives
+$\mu$ from two historical rating coordinates, and induces both marginal
+families from historical pair counts.  It starts from the public
+\texttt{dual\_feasible\_start}; no planted optimum or future potential enters
+the problem.  All \AFThreeMovieAccepts{} workloads receive an endpoint
+certificate on their first damped-Newton attempt (\cref{tab:historical-workload}).
+
+\begin{table}[t]
+\centering
+\caption{A43 MovieLens workload using ratings at or before each cutoff only.
+All instances have 18 active genres.  Times are single registered-machine
+observations and are descriptive, not a scaling comparison.}
+\label{tab:historical-workload}
+\small
+\begin{tabular}{rrrrrr}
+\toprule
+Cutoff & Users & Edges & Gap upper bound & $\ell_1$ residual & Seconds \\
+\midrule
+0.40 & \AFThreeMovieUsersA & \AFThreeMovieEdgesA
+ & \AFThreeMovieGapA & \AFThreeMovieResidualA & \AFThreeMovieSecondsA \\
+0.50 & \AFThreeMovieUsersB & \AFThreeMovieEdgesB
+ & \AFThreeMovieGapB & \AFThreeMovieResidualB & \AFThreeMovieSecondsB \\
+0.60 & \AFThreeMovieUsersC & \AFThreeMovieEdgesC
+ & \AFThreeMovieGapC & \AFThreeMovieResidualC & \AFThreeMovieSecondsC \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The first accepted result is also exported as exact binary64 arrays, candidate,
+tree, tolerance, and a canonical SHA-256 payload.  A fresh reconstruction reruns
+the strict backend, accepts, and exactly matches the serialized claim
+fingerprints.  This closes the process-local usability gap without turning the
+JSON summary into authority.  The panel establishes a public, historical-input
+optimization workload and portable endpoint replay; it does not evaluate
+recommendation accuracy or causal deployment performance.
+
+\subsection{Experimental external verified-conic baseline}
+\label{sec:results-a44}
+
+The disjoint A44 amendment executes VSDP 2020.1 as the closest identified
+general verified-conic comparator on small and medium instances.
+Each reciprocal term is represented by one three-dimensional
+second-order cone and five lifted variables; power-of-two scaling keeps the
+transformation exact for the represented binary64 coefficients.
+
+The VSDP and SeDuMi sources are pinned upstream releases.  A thin adapter maps
+VSDP's SOCP uses of INTLAB onto the GNU Octave interval package.  This is an
+experimental open-backend port, not INTLAB and not an official stock-VSDP
+configuration.  Before the confirmatory run, it passed a sub-ulp outward
+interval-construction test, a verified linear-solve containment test, and the
+VSDP authors' bundled SOCP rigorous-bound assertions.
+
+All 18 preregistered cells cross three graph families, two edge counts, and
+three seeds. Their complete represented-problem fingerprints match the
+corresponding immutable A42 CertQuota cells. The experimental port reported
+finite lower and upper objective bounds in 18/18 cells. Every bracket
+contained the floating planted reference objective, used only by the analysis.
+This reference is not an exact optimality witness for the represented input:
+rounding the constructed flow, costs, and marginals generally breaks exact
+KKT equalities. Reference containment is consequently a consistency diagnostic,
+not a correctness test. Moreover, all 18 A44 interval widths exceed the paired
+A42 requested tolerances (by factors 10.23--121.03); finite-bracket success
+must not be read as matched-accuracy success.
+\Cref{tab:vsdp-port-a44} reports interval width and resource use.  The two
+methods have different process and runtime boundaries, so this amendment
+does not authorize a direct speed ratio.
+
+\input{vsdp_baseline_table_a44.tex}
+
+Thus A44 supplies an executed general conic rigorous-bound path and removes
+the earlier absence of any such run at the algorithm level.  It does not close
+the narrower stock VSDP+INTLAB comparison: a licensed INTLAB installation was
+not available, and the experimental rows remain ineligible for an official or
+direct speed-ranking claim.
+
+\input{a45_revision}
+
+\section{Related work}
+\label{sec:related}
+
+\paragraph{Reciprocal transport and convex network flow.}
+The objective itself is not new.  The $\beta$-potential formula of
+Dessein et al.\ \citep{dessein2018rot}, extended algebraically beyond its analyzed parameter
+range, gives
+\[
+ \phi_{-1}(z)=\frac{z^{-1}+z-2}{2},\qquad
+ c_ez_e+\frac{\mu_e}{z_e}
+ =(c_e-\mu_e)z_e+2\mu_e\phi_{-1}(z_e)+2\mu_e.
+\]
+Thus our weighted objective is a formal edge-weighted $\beta=-1$
+specialization after an edgewise shift of the linear costs and an additive
+constant.  This is an algebraic identification, not an inherited algorithmic
+guarantee: Dessein et al.\ \citep{dessein2018rot} analyze $0<\beta<1$ for this family and
+explicitly note that other parameter values need not satisfy their assumptions.
+Newton and interior methods for separable nonlinear network and transportation
+ problems are classical
+ \citep{klincewicz1983,klincewicz1989,katsura1989interior,ibaraki1991dual}.
+ Earlier primal algorithms already maintain feasible convex-cost flows and
+ derive objective upper bounds: the method in \citep{weintraub1974primal} uses the most
+ negative incremental-cost circuit both to update a feasible flow and to bound
+ its remaining suboptimality.  The $\epsilon$-relaxation method of
+ \citep{bertsekas1997epsilon} is globally terminating and near-optimal
+ with a complexity analysis.  These are solver algorithms with their own
+ iterates and termination logic, rather than posterior outward-rounded replay
+ contracts for arbitrary candidate arrays.
+
+ Primal recovery from a nonoptimal dual vector is also not new:
+ \citep{marklund2008early} constructs primal-feasible flows for separable
+ strictly convex single-commodity networks using residual-graph and
+ shortest-path schemes, with convergence to the unique primal optimum along a
+ convergent dual sequence and an associated primal--dual stopping criterion.
+ Their construction is therefore also usable around dual algorithms rather
+ than tied to one candidate generator.  Its real-arithmetic recovery is not an
+ outward-rounded finite endpoint replay, does not require edgewise strict
+ positivity, and does not state an original-array $O(m+n)$ certificate bound.
+More recent work exploits bipartite normal equations, sparsity, and
+regularization at far greater generality
+\citep{castro2021huge,wright2023direct,cipolla2024sparse,tang2024safe,
+wang2025splr};
+almost-linear flow algorithms address broader objectives
+\citep{chen2025maxflow}.  Finite-precision primal recovery and explicit gaps
+also appear in an almost-linear solver for a different hypergraph-Laplacian
+energy \citep{yoshida2026hypergraph}.  We do not claim a new Newton method,
+Laplacian Hessian, finite-precision graph recovery, reciprocal formulation, or
+globally near-linear candidate solver.
+The Convex Network Flows framework covers a broader class of hypergraph flow
+models and supplies an edge-decomposed algorithm and the open-source
+ConvexFlows.jl implementation \citep{diamandis2024convexflows}.  It is therefore
+a relevant general solver and software precedent, but does not make the signed
+original-array endpoint claim studied here.
+Recent OT candidate solvers combine truncated or sparse Newton steps with
+Sinkhorn or Bregman proximal frameworks
+\citep{kemertas2025truncated,wu2025pins,pan2026ibsn}; a contemporaneous
+network-equilibrium preprint reports empirical near-linear scaling for a
+different undirected model \citep{livne2026nlf}.  These works strengthen
+candidate generation and global solution, whereas our theorem concerns a
+finite, solver-independent endpoint replay on the represented reciprocal
+problem.  A recent dynamic-OT Newton method uses a spanning-tree gauge to remove
+cycle redundancy and a separate CFL positivity condition
+\citep{chen2026graphot}; that use of a tree is distinct from our
+support-preserving endpoint residual repair and precludes any claim that trees
+or positivity are new to OT Newton methods.
+
+Approximate transport algorithms often postprocess marginals.  The rounding
+construction in \citep{altschuler2017nearlinear}, for example, can add a residual
+outer product and need not preserve a prescribed sparse eligibility support.
+Our spanning-tree correction instead stays on declared edges and couples exact
+marginal repair to an explicit strict-positivity and objective-gap test.  That
+support-preserving certificate, rather than rounding in general, is the
+structure used here.
+
+\paragraph{Verified optimization.}
+Separating a fast computation from a checkable witness is the certifying
+algorithm paradigm \citep{mcconnell2011certifying}.  Rigorous objective bounds
+and postprocessing exist for convex, conic, linear, and semidefinite programs;
+general accuracy certificates formalize how computed information can authorize
+quantitative error statements
+\citep{nemirovski2010accuracy,jansson2009verified,jansson2004convex,
+jansson2007conic,jansson2007rigorous,lange2020verification,rump2010verification}.
+Interval methods can separately prove equality-constrained feasibility
+\citep{kearfott1998feasible}, while modern certificate formats and formally
+verified floating-point kernels address proof portability and trusted
+implementation boundaries in other problem classes
+\citep{szeider2026vipr,kohlen2025verified}.
+General conic dual certificates can also reconstruct or certify primal cone
+membership, and feasible nonsymmetric conic interior-point methods can produce
+compatible near-optimal candidates
+\citep{lee2025dual,papp2025fullnewton}; therefore neither posterior
+certification nor dual-to-primal reconstruction is new in principle.
+Fast feasible primal recovery from dual iterates is also studied beyond network
+flow \citep{parshakova2025multiple}, and accelerated primal--dual averaging can
+produce general convex accuracy certificates \citep{burns2026accuracy}.
+Verified DCP/conic reductions in Lean address the complementary modeling
+boundary \citep{bentkamp2023verified}; our artifact does not claim a formally
+verified reduction from an application model.  Standard conic quadratic
+formulations and primal--dual implementations
+\citep{andersen2003conic,goulart2026clarabel,diamond2016cvxpy} apply to
+\cref{eq:problem} after introducing one cone block per edge.
+
+VSDP is the closest identified general rigorous software comparator: it can
+verify linear, second-order-cone, and semidefinite programs, but its documented
+runtime requires MATLAB or GNU Octave, INTLAB, and an approximate conic solver
+\citep{vsdp2020}.  None of MATLAB, Octave, or INTLAB was present in the frozen
+A42/A43 environment, so stock VSDP was unavailable there rather than encoded
+as a synthetic timeout.  A44 subsequently pins VSDP and SeDuMi and executes
+the SOCP rigorous-bound routines through an audited experimental GNU Octave
+interval adapter.  The adapter result is reported explicitly as an open-backend
+port and is not relabeled as stock VSDP+INTLAB.  The executed CVXPY/Clarabel
+lift measures candidate transfer, while Arb measures an independent replay of
+our predicate; neither is a general verified optimizer.  A44 removes the lack
+of an executed generic conic bound computation. A45 adds exact per-instance
+witness checks, common tolerances and fresh-process timing. The absent official
+INTLAB configuration and the port's dense interval path still prevent a general
+performance claim against verified conic software.
+
+Our narrower distinction is the simultaneous contract of an endpoint replay on
+the original $(B,\beta,c,\mu)$ arrays: no $m$-block conic lift or generator
+status is trusted, tree recovery preserves sparse support, signed outward
+intervals prove strict positivity and a gap for the same implicit exact-real
+allocation, and the fixed-topology replay has $O(m+n)$ work and memory.  Feasible
+primal recovery, objective-gap bounds, interval verification, trees, and fast
+convex-flow software all have prior art; the contribution is their
+structure-specific combination in one finite endpoint decision procedure.
+Arb-V is a separately implemented higher-precision audit of the same endpoint predicate
+\citep{johansson2017arb}; it is neither an external method nor evidence that
+general verified conic software is inferior.
+
+\Cref{tab:novelty-map} separates capabilities already present in prior work
+from their combination in our endpoint predicate.  Entries marked
+\emph{no endpoint claim} are outside the cited method's stated output contract;
+they do not assert impossibility within that broader framework.
+\input{novelty_map_table.tex}
+
+\paragraph{Federated client sampling.}
+Concurrent multi-model FL allocates limited clients among models
+\citep{bhuyan2022mmfl,bhuyan2022provable,askin2024fedast}.  The variance-aware
+MMFL sampling line includes an ICDCS poster and its expanded
+MMFL-LVR/StaleVR formulation
+\citep{zhang2024poster,zhang2025optimal}.  It uses client capacities and a
+global participation total, which permits a different closed-form allocation;
+it does not impose one participation marginal for every model.
+Fair concurrent training controls model-level allocation
+\citep{siew2025fair}, while group, clustered, adaptive, and engagement-aware
+methods address other statistical or systems objectives
+\citep{fraboni2021clustered,gong2025group,zhao2025adaptive,lin2025flammable}.
+Market-equilibrium work allocates fractional client resources across multiple
+server models with fairness and efficiency guarantees
+\citep{diamanti2026market}, but optimizes utilities rather than
+inverse-probability variance under fixed model marginals.
+Our reduction occupies their intersection only under continuous two-sided
+\emph{expected} quotas and independent categorical client decisions.
+
+Balanced survey sampling and dependent rounding study related inclusion
+probabilities and realized constraints
+\citep{horvitz1952,tille2005optimal,chauvet2011optimal,gandhi2006rounding,rivest2023fixed}.
+They also make clear why exact integer model counts in each round would change
+the covariance structure and require a separate analysis.
+
+\section{Limitations}
+\label{sec:limitations}
+
+The theorem assumes a connected declared graph, finite inputs, and $\mu_e>0$ on
+every declared edge.  Global candidate routines additionally target instances
+with bipartite-sign marginals and positive feasibility; endpoint acceptance
+itself supplies that feasibility for every authorized represented instance.
+Removing a zero-weight eligibility relation changes the problem support;
+flooring it changes the objective.  The core routine rejects malformed inputs
+but is not a general sparse-transport feasibility oracle.
+
+Endpoint soundness is conditional on
+\cref{assump:ieee-execution}: correctly rounded binary64 primitives and square
+root, gradual underflow, and the fixed expression DAG.  Runtime probes are
+health checks, not a proof that every future execution satisfies those
+assumptions.  The implementation fails closed, so a mathematically valid
+candidate can be rejected at fixed precision.  The theorem authorizes an
+implicit exact-real allocation; a materialized binary64 vector has a measured,
+not bitwise-zero, residual.  Likewise, an MMFL sampler must realize the certified
+inclusion probabilities rather than silently renormalize them.
+The A45 companion additionally exports explicit rational allocations and checks
+their exact marginals and objective bounds. This removes the implicit-object
+ambiguity for those exported workloads, at an extra arbitrary-precision cost;
+it does not make the original binary64 vector exactly feasible or supply an
+exact categorical-sampling implementation.
+Candidate-generator independence does not provide process isolation: arbitrary
+finite numeric output is allowed, but concurrent mutation of replay snapshots,
+private prepared-state capabilities, verifier code, or floating-point controls
+is outside the contract.  Public arrays are bytes-backed, public boundaries
+recheck object seals, and malformed or stale capabilities fail closed under the
+ordinary API; hostile Python reflection is not a security claim.
+
+The conditional $\Omega(m)$ result concerns accepting probes of fresh explicit
+slack-sensitive edge arrays.  It excludes authenticated preprocessing, proof
+oracles, and always-reject programs, and says nothing about the total cost or
+global convergence of a candidate solver.  The dynamic experiments use supplied
+smooth and shock warm starts on one workstation.  The full-pipeline scaling
+panel likewise starts from a planted dual with a 5\% relative-slack
+perturbation, fixes quota ratio one, zero linear cost, and reciprocal-weight
+span four, and excludes cold graph/router/topology-plan construction.  It is
+therefore a warm-start public-call scaling study, not evidence for arbitrary
+initialization or first-use global solver complexity.  The internal strict methods
+and conic references are a limited named set; the independent Arb checker
+replays the endpoint decision but is not a general verified conic optimizer.
+Candidate rejection can reflect either candidate quality or finite-precision
+conservatism.  Certificate soundness holds for any validated spanning tree, but
+acceptance sharpness, correction magnitude, and timing can depend on the tree;
+the A43 panel confirms substantial dependence, with decision differences in
+104 of 144 candidate--tolerance cells.  Maximum-conductance Kruskal dominates
+the other registered rules on acceptance in this grid, but no theorem makes it
+optimal and other graphs may favor another tree.  Tree construction and any
+search over trees are outside the fixed-topology replay bound.  Together with
+the absence of a stock VSDP+INTLAB run,
+these facts preclude a ranking over all
+transportation or verified-optimization software.
+
+The MovieLens user--movie panel uses a real eligibility topology but planted
+optimization quantities and therefore does not evaluate a recommender.  The
+user--genre panel derives update proxies from rating histories, but its endpoint
+is still conditional sampling MSE rather than held-out ranking or trained-model
+performance.  Its eligibility support is selected retrospectively by requiring
+observations both before and after each temporal cutoff; later data therefore
+participate in support construction.  This preserves the reported arithmetic
+comparison on that post-selected support, but it is not a leakage-free
+deployment simulation.  A43 separately removes that leakage for the
+optimization input: support, weights, quotas, start, and tree use pre-cutoff
+ratings only, and all three instances certify.  Its genre quotas are induced
+from historical counts to guarantee feasibility, its linear costs are zero,
+and it still measures only an optimization workload, not held-out
+recommendation quality. A45 adds nonzero processing-cost proxies, externally
+specified coverage mixtures, and a certified improvement-over-policy decision.
+Its 12 cells still reuse one dataset and use designed costs and quotas, not
+measured production latency or independent application deployments.
+In the earlier conditional-MSE study, current-norm
+weights require unavailable future information and serve only as a diagnostic
+oracle; historical and coordinate weights optimize surrogates.  Quotas hold in
+expectation, not as exact per-round integers.  No
+experiment measures neural-network accuracy, demographic fairness,
+communication-to-target, or end-to-end MMFL training time.  Consequently, the
+paper makes neither a general optimization SOTA claim nor an MMFL training SOTA
+claim.
+
+The historical timing evaluation is tied to the declared Windows/AMD
+environment. A later public-release check builds and installs a non-editable
+wheel on Ubuntu 24.04 and Windows 2022, with 35 core tests and three
+independently checked 1024-edge examples on each platform. This is an
+executed portability check, not a complete cross-platform rerun of the
+historical experiments. No macOS run or universal hardware guarantee is claimed.
+
+\section{Software and artifact availability}
+\label{sec:availability}
+
+The accompanying \texttt{certquota} 0.2.0 source is an installable Python
+package under the BSD-3-Clause license.  Its stable public namespace exposes the
+problem type, verified options and result records, \texttt{solve\_verified}, and
+the portable replay writer/checker.  A standard
+\texttt{pip install .} installs from the supplied source tree; the release audit
+also builds the source distribution and wheel and applies package metadata
+checks.  The authoritative call returns an immutable \texttt{VerifiedResult}.
+Only \texttt{status == "optimal"} carries a strict certificate, its bound
+problem/router snapshot, and a materialized allocation.  Invalid domains,
+timeouts, generator exceptions, and exhausted repair cascades return explicit
+nonoptimal statuses with no authorized allocation; malformed constructor or
+low-level arguments may raise validation exceptions.
+
+The A42 evidence bundle is content-addressed twice: an execution-source manifest
+binds code and protocols before formal production, and a submission manifest
+binds the resulting raw analyses, figures, tables, package inputs, and
+manuscript.  The read-only audit described in \cref{app:protocol} rehashes both
+closures and regenerates their derived products.  A43 has a separate frozen
+source hash (prefix \texttt{\AFThreeSourceHashShort}), raw/summary hashes,
+deterministic analysis, and portable replay; it is not pooled into A42.  The
+A44 confirmatory execution has a separate 44-file source manifest (SHA-256
+prefix \texttt{57512c85b5a0}), exclusive-create raw/availability/summary
+records, an independent deterministic analysis, and a retained compatibility
+validation record.  Its stock-claim flag remains false.  A44 is not pooled
+into A42 or A43 and does not modify their historical timing contracts. A45
+preserves the 127-file A44 historical closure in a hash-checked archive before
+editing the current manuscript. Its new records, independent integer/rational
+checkers, explicit rational allocations, and optional conic-candidate portfolio
+are a separate revision overlay. A clean Windows virtual environment installs
+the non-editable wheel from original dependency archives checked against their
+PyPI SHA-256 values, passes 35 installed-package tests without the checkout's
+path-modifying test configuration, and independently checks three 1024-edge
+public-cold-start examples. The development suite passes 404 tests with no
+skips. Public GitHub Actions run \texttt{34040622682}, on source commit
+\texttt{dfd58e1d5644}, subsequently passes the isolated installed-wheel checks
+on both Ubuntu 24.04 and Windows 2022. Each job uses Python 3.11, NumPy 1.26.4,
+and SciPy 1.15.3, passes the 35-test subset, and independently checks three
+1024-edge examples; its logs, exact runtime details, wheel hash, and platform
+probe are retained with the public release. This closes the clean Linux
+installation check only, not the full historical-replication scope. Automated
+numerical validation is not a human proof review. The
+checksum-constrained MovieLens-1M archive is not redistributed; all MovieLens
+analyses require a separately obtained matching archive. The public repository
+and dated preprint release are listed in the declarations. Its curated
+publication snapshot supplies core installation tests and standalone proof
+verification, but is not a byte-for-byte copy of every historical local
+execution environment. Historical audit records describe their own frozen
+snapshots, not this later author-identified preprint. No archival DOI is claimed.
+
+\section{Conclusion}
+
+Sparse reciprocal transportation permits a small, explicit boundary between
+untrusted numerical work and strict return authority.  A finite candidate
+potential, a support-preserving tree correction, and a signed outward-rounded
+replay on the original arrays jointly certify positivity, exact feasibility for
+the represented marginals, and an objective-gap bound for one implicit
+exact-real allocation.  On a fixed topology, the endpoint replay requires
+linear work and memory, including under adversarially skewed reduction groups.
+These guarantees depend on the declared arithmetic and ownership contract, but
+not on a candidate solver's status or stopping logic.
+
+CertQuota-V turns that theorem into a fail-closed software interface: fast
+generators propose candidates, while a fresh terminal replay alone authorizes a
+return.  The A42 study separates predicate sharpness, structural complexity,
+complete-pipeline cost, generator quality, and sampling utility, rather than
+collapsing them into one solver-ranking claim.  Its content-addressed evidence
+includes adversarial topology tests, dynamic and scaling panels, independent
+high-precision replays, and synthetic and MovieLens conditional-MSE studies.
+The A43 amendment also exposes a material tree-selection effect instead of
+hiding it, identifies maximum-conductance Kruskal as the strongest registered
+rule on its grid, and certifies three prospectively constructed MovieLens
+workloads with a third-party replay bundle.
+A44 additionally executes an experimental open-backend VSDP rigorous-conic
+baseline on 18 source-bound instances, while preserving the distinction from
+stock VSDP+INTLAB and declining a cross-runtime speed ranking.
+A45 strengthens the computational case through independently witnessed
+matched-accuracy comparisons, explicit rational policy decisions, and charged
+dynamic-tree policies. Difficult starts expose failures of the original
+candidate cascade; documented optional conic retries and domain retraction
+recover these cases without changing the endpoint acceptance rule.
+The resulting contribution is a reproducible verified numerical primitive for
+a specific sparse convex problem.  It does not establish a globally
+near-linear candidate solver, universal runtime superiority, or
+state-of-the-art federated-learning training.
+
+\appendix
+\input{appendix}
+
+\bibliographystyle{spmpsci}
+\bibliography{references}
+
+\clearpage
+\input{declarations}
+
+\end{document}

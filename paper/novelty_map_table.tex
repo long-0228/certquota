@@ -1,0 +1,62 @@
+% Compact MPC-layout capability map.
+\begin{table}[t]
+\centering
+\caption{Relation to the closest method families.  ``No finite endpoint'' means
+that the cited work does not state the simultaneous outward-rounded guarantee
+in the third column; it is not an impossibility claim.}
+\label{tab:novelty-map}
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.12}
+\begin{tabular}{@{}
+>{\raggedright\arraybackslash}p{0.20\linewidth}
+>{\raggedright\arraybackslash}p{0.23\linewidth}
+>{\raggedright\arraybackslash}p{0.27\linewidth}
+>{\raggedright\arraybackslash}p{0.23\linewidth}@{}}
+\toprule
+Method family & Native object & Finite endpoint contract & Distinction here \\
+\midrule
+Reciprocal transport and classical convex network flow
+\citep{dessein2018rot,weintraub1974primal,klincewicz1983,
+klincewicz1989,bertsekas1997epsilon,marklund2008early}
+& Transport or network arcs; support is native
+& Feasible iterates, recovery, and stopping bounds in real arithmetic; no
+single outward-rounded arbitrary-candidate endpoint
+& Same sparse support, but one finite replay binds positivity, exact-real
+feasibility, and the gap \\
+
+General convex-flow solvers
+\citep{chen2025maxflow,diamandis2024convexflows}
+& Graph or hypergraph flow model
+& Solver-dependent global guarantees; no arbitrary-candidate endpoint replay
+& Original reciprocal arrays and generator-independent return authority \\
+
+Transport rounding \citep{altschuler2017nearlinear}
+& Dense transport plan
+& Exact-arithmetic marginal repair; strict positivity and endpoint gap are not
+the target
+& Tree repair remains on the declared sparse support \\
+
+Verified conic and interval optimization
+\citep{jansson2004convex,jansson2007conic,jansson2007rigorous,
+jansson2009verified,lange2020verification,vsdp2020,rump2010verification}
+& Generic lifted cone or nonlinear/KKT enclosure
+& Rigorous formulation-dependent bounds; potentially broader
+& No trusted $m$-block lift; fixed-topology replay is $O(m+n)$ \\
+
+General accuracy certificates and conic recovery
+\citep{nemirovski2010accuracy,burns2026accuracy,
+parshakova2025multiple,papp2025fullnewton,lee2025dual}
+& Generic convex information or cone representation
+& Quantitative certificates or recovery under method/model assumptions
+& One structure-specific original-array decision procedure \\
+
+This work
+& Sparse $(B,\beta,c,\mu)$ arrays and a spanning tree
+& Mandatory outward-rounded positivity, exact-real feasibility, and
+$\varepsilon$-gap for one implicit allocation
+& Self-contained replay input, support preservation, and linear fixed-topology
+work/memory \\
+\bottomrule
+\end{tabular}
+\end{table}

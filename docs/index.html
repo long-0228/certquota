@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CertQuota-V | Verified sparse reciprocal transportation</title>
+  <meta name="description" content="A solver-independent, fixed-topology linear-work endpoint certificate for sparse reciprocal transportation. Preprint, source code, and independently checkable evidence by Long Li.">
+  <meta name="citation_title" content="A Solver-Independent, Fixed-Topology Linear-Work Endpoint Certificate for Sparse Reciprocal Transportation">
+  <meta name="citation_author" content="Long Li">
+  <meta name="citation_publication_date" content="2026/09/06">
+  <meta name="citation_pdf_url" content="https://long-0228.github.io/certquota/assets/certquota-preprint.pdf">
+  <meta property="og:title" content="CertQuota-V: from numerical candidates to checkable guarantees">
+  <meta property="og:description" content="Solver-independent endpoint certification on the original sparse arrays. A research preprint by Long Li.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://long-0228.github.io/certquota/">
+  <link rel="canonical" href="https://long-0228.github.io/certquota/">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"ScholarlyArticle","headline":"A Solver-Independent, Fixed-Topology Linear-Work Endpoint Certificate for Sparse Reciprocal Transportation","author":{"@type":"Person","name":"Long Li","affiliation":{"@type":"Organization","name":"Independent Researcher"}},"datePublished":"2026-09-06","url":"https://long-0228.github.io/certquota/","encoding":{"@type":"MediaObject","contentUrl":"https://long-0228.github.io/certquota/assets/certquota-preprint.pdf","encodingFormat":"application/pdf"}}
+  </script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="site-header wrap">
+    <a class="brand" href="./" aria-label="CertQuota-V home"><span class="brand-mark" aria-hidden="true">C<span>✓</span></span>CertQuota<span class="brand-v">-V</span></a>
+    <nav aria-label="Main navigation"><a href="#method">Method</a><a href="#evidence">Evidence</a><a href="#resources">Resources</a><a href="https://github.com/long-0228/certquota">GitHub ↗</a></nav>
+  </header>
+  <main id="main">
+    <section class="hero wrap" aria-labelledby="paper-title">
+      <div class="eyebrow"><span class="status-dot"></span> Research preprint <span class="divider">/</span> 06 September 2026</div>
+      <h1 id="paper-title">A Solver-Independent,<br class="wide-only"> Fixed-Topology Linear-Work<br class="wide-only"> <em>Endpoint Certificate</em> for<br class="wide-only"> Sparse Reciprocal Transportation</h1>
+      <div class="author"><a href="mailto:lilong0228@gmail.com">Long Li</a><span>Independent Researcher</span></div>
+      <p class="lede">From a floating-point candidate to a checkable guarantee of positivity, exact feasibility, and bounded objective error—directly on the original sparse problem.</p>
+      <div class="actions"><a class="button primary" href="assets/certquota-preprint.pdf">Read the paper <span aria-hidden="true">↗</span></a><a class="button secondary" href="https://github.com/long-0228/certquota">Explore the code <span aria-hidden="true">↗</span></a><a class="text-link" href="#cite">Cite this work ↓</a></div>
+      <p class="publication-note">Preprint · Not peer-reviewed · arXiv submission pending category endorsement; no arXiv identifier assigned.</p>
+    </section>
+
+    <section class="method-band" id="method" aria-labelledby="method-heading">
+      <div class="wrap">
+        <div class="section-heading"><div><span class="eyebrow">01 / The idea</span><h2 id="method-heading">Solve however you like.<br>Verify what matters.</h2></div><p>The numerical solver proposes a potential. A separate replay is the sole authority for acceptance.</p></div>
+        <div class="equation" aria-label="Minimize the sum of c e z e plus mu e divided by z e, subject to B z equals beta and z is positive."><span>min</span> ∑<sub>e</sub> (c<sub>e</sub>z<sub>e</sub> + μ<sub>e</sub>/z<sub>e</sub>) <span class="equation-constraint">Bz = β &nbsp;·&nbsp; z &gt; 0</span></div>
+        <ol class="pipeline">
+          <li><span class="step-number">01</span><h3>Propose</h3><p>A finite dual candidate from any numerical solver.</p><span class="step-label">Untrusted candidate</span></li>
+          <li><span class="step-number">02</span><h3>Recover</h3><p>Reciprocal KKT allocation with a canonical spanning-tree correction.</p><span class="step-label">Implicit exact-real flow</span></li>
+          <li><span class="step-number">03</span><h3>Replay</h3><p>Signed, outward-rounded arithmetic checks the same recovered allocation.</p><span class="step-label">Accept or reject</span></li>
+        </ol>
+        <div class="guarantees"><span>Strict positivity</span><span>Exact represented marginals</span><span>Objective gap ≤ ε</span></div>
+        <p class="contract">The linear-work claim applies to verification with precompiled, fixed-topology schedules—not to the entire solve. Exact feasibility belongs to the implicit real allocation; the returned binary64 vector is approximate. A separate rational format supports explicit exact-feasible decisions.</p>
+      </div>
+    </section>
+
+    <section class="evidence wrap" id="evidence" aria-labelledby="evidence-heading">
+      <div class="section-heading"><div><span class="eyebrow">02 / Computational evidence</span><h2 id="evidence-heading">Common targets.<br>Explicit boundaries.</h2></div><p>Matched problem fingerprints, saved accuracy targets, and independent integer/rational checks.</p></div>
+      <div class="evidence-grid">
+        <article class="comparison"><h3>Matched-accuracy comparison</h3><p class="small muted">18 shared problems · 300 or 1,000 edges</p><table><caption class="sr-only">Accepted instances at the same epsilon for each tested implementation</caption><thead><tr><th scope="col">Tested implementation</th><th scope="col">At shared ε</th></tr></thead><tbody><tr><th scope="row">CertQuota public cold pipeline</th><td>18 / 18</td></tr><tr><th scope="row">CertQuota on the same SeDuMi dual</th><td>18 / 18</td></tr><tr><th scope="row">Experimental VSDP interval port</th><td>15 / 18</td></tr></tbody></table><p class="caveat">All 18 port brackets are finite and independently witnessed; three miss the common tolerance. The dense Octave-interval compatibility port is <strong>not stock VSDP/INTLAB</strong>. These observations are not a universal solver ranking.</p></article>
+        <article class="proof-card"><span class="eyebrow">Independent verification</span><div class="big-number">90<span>public proof objects</span></div><p>Recheck the synthetic problems with Python's standard library. No CertQuota, NumPy, Arb, or VSDP imports are needed.</p><a href="https://github.com/long-0228/certquota/releases/download/preprint-2026-09-06/certquota-a45-public-evidence.zip">Download the witness archive ↗</a><p class="small">The local audit checks 114 objects. The 24 MovieLens-derived objects are not redistributed under the dataset's permission requirement.</p></article>
+      </div>
+      <div class="findings">
+        <article><span class="finding-label">Difficult candidates</span><h3>26 / 36 <span>within the original budget</span></h3><p>All 36 valid starts eventually pass only with explicit extra retry stages. All 18 invalid-domain controls are rejected.</p></article>
+        <article><span class="finding-label">Changing trees</span><h3>66 vs 216 <span>tree builds</span></h3><p>Rebuild-on-rejection and always-rebuild both pass 216/216 cells. These are correlated measurements from nine graphs.</p></article>
+        <article><span class="finding-label">Budget decisions</span><h3>12 / 12 <span>rational decisions checked</span></h3><p>Historical MovieLens inputs with nonzero cost and quota proxies. One dataset, not a production deployment or a recommendation-quality claim.</p></article>
+      </div>
+      <p class="source-note">Source: the A45 revision and independent-witness appendix in the <a href="assets/certquota-preprint.pdf">paper</a>. Numerical evidence is not a substitute for independent human proof review.</p>
+    </section>
+
+    <section class="resources wrap" id="resources" aria-labelledby="resources-heading">
+      <div class="section-heading"><div><span class="eyebrow">03 / Open companion</span><h2 id="resources-heading">Read it. Run it. Check it.</h2></div><p>Small, inspectable components with a documented finite-precision contract.</p></div>
+      <div class="resource-list">
+        <a href="assets/certquota-preprint.pdf"><span class="resource-number">01</span><div><h3>Full preprint</h3><p>Mathematical development, experiments, limitations, and declarations.</p></div><span class="resource-type">PDF ↗</span></a>
+        <a href="https://github.com/long-0228/certquota"><span class="resource-number">02</span><div><h3>Source and runnable example</h3><p>CertQuota 0.2.0 · BSD-3-Clause software · Python 3.10+</p></div><span class="resource-type">GitHub ↗</span></a>
+        <a href="https://github.com/long-0228/certquota/releases/tag/preprint-2026-09-06"><span class="resource-number">03</span><div><h3>Dated release and checksums</h3><p>Portable TeX source, synthetic witnesses, and SHA-256 manifest.</p></div><span class="resource-type">Release ↗</span></a>
+        <a href="https://github.com/long-0228/certquota/actions/runs/34040622682"><span class="resource-number">04</span><div><h3>Linux + Windows installation checks passed</h3><p>35 core tests and three independently checked 1,024-edge examples on each platform. Portability check, not a full timing rerun.</p></div><span class="resource-type">CI logs ↗</span></a>
+      </div>
+      <div class="quickstart"><div><h3>A minimal round trip</h3><p>Only an accepted strict certificate authorizes an allocation. A solver status alone does not.</p><a href="https://github.com/long-0228/certquota/blob/main/REPRODUCIBILITY.md">Read the reproduction guide ↗</a></div><pre><code>git clone https://github.com/long-0228/certquota.git
+cd certquota
+python -m pip install .
+python examples/solve_and_replay.py</code></pre></div>
+      <p class="source-note">This is a curated public snapshot, not the complete historical local experiment environment. Raw MovieLens data, dataset-derived proof arrays, proprietary interval software, and third-party solver binaries are excluded.</p>
+    </section>
+
+    <section class="citation wrap" id="cite" aria-labelledby="citation-heading">
+      <div><span class="eyebrow">04 / Citation</span><h2 id="citation-heading">Build on a checkable result.</h2><p>The citation will be updated when an arXiv identifier or journal record is available.</p><a class="text-link" href="citation.bib" download>Download BibTeX ↓</a></div>
+      <pre><code>@misc{li2026certquota,
+  author = {Li, Long},
+  title = {A Solver-Independent, Fixed-Topology
+           Linear-Work Endpoint Certificate for
+           Sparse Reciprocal Transportation},
+  year = {2026},
+  howpublished = {Preprint},
+  url = {https://long-0228.github.io/certquota/}
+}</code></pre>
+    </section>
+  </main>
+  <footer class="wrap"><div><a class="brand" href="./">CertQuota-V</a><p>© 2026 Long Li · <a href="mailto:lilong0228@gmail.com">Contact</a></p></div><p>No specific external grant; no declared competing interests. OpenAI Codex assisted implementation, experiments, and manuscript preparation; it is not an author. The author is responsible for the work. Software: BSD-3-Clause. Paper copyright is retained by the author. No analytics or tracking scripts.</p></footer>
+</body>
+</html>

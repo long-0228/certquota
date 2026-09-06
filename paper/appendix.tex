@@ -1,0 +1,1098 @@
+\section{MMFL variance and descent calculations}
+\label{app:mmfl}
+
+For fixed model $s$, write $v_{is}=\alpha_{is}u_{is}$ and
+$X_{is}=Z_{is}/p_{is}-1$.  Then
+$\widehat U_s-U_s=\sum_iX_{is}v_{is}$.  All expectations in this section are
+conditional on $\cA_t$ from \cref{sec:mmfl}.  Thus
+$\E[X_{is}\mid\cA_t]=0$, different clients decide independently, and cross
+terms vanish:
+\begin{align}
+ \E\norm{\widehat U_s-U_s}_2^2
+ &=\sum_i\E[X_{is}^2]\norm{v_{is}}_2^2 \\
+ &=\sum_i\left(\frac1{p_{is}}-1\right)
+ \alpha_{is}^2\norm{u_{is}}_2^2.
+\end{align}
+This proves \cref{thm:mmfl}.  Within a client, indicators for different models
+are negatively related, but no cross-model covariance enters a sum of separate
+per-model squared errors.  A joint norm mixing models would require its own
+covariance calculation.
+
+This is a potential-update conditional identity.  If local updates retain
+randomness after the scheduling decision, the same formula requires
+conditional independence between selection and the potential update, with
+$\norm{u_{is}}_2^2$ replaced by its appropriate conditional second moment.
+Without that condition the reciprocal variance objective need not be exact.
+
+For completeness, if $f_s$ is $L_s$-smooth and
+$U_s=\nabla f_s(w_s)$, then for any step $\gamma_s>0$,
+\begin{align}
+ \E f_s(w_s-\gamma_s\widehat U_s)
+ &\le f_s(w_s)-\gamma_s\norm{U_s}^2
+ +\frac{L_s\gamma_s^2}{2}\E\norm{\widehat U_s}^2 \\
+ &=f_s(w_s)-\gamma_s\left(1-\frac{L_s\gamma_s}{2}\right)
+ \norm{U_s}^2
+ +\frac{L_s\gamma_s^2}{2}
+ \E\norm{\widehat U_s-U_s}^2.
+\end{align}
+Thus variance optimization minimizes the sampling-dependent term in this
+one-step upper bound when quotas and step sizes are fixed.  It does not by itself
+prove an end-to-end training advantage.
+
+\section{Well-posedness and dual derivation}
+\label{app:dual}
+
+Let the left and right marginals be strictly positive, let every $c_e$ be
+finite, let every $\mu_e$ be finite and strictly positive, and suppose there
+exists a strictly positive feasible allocation.  The closure of the bipartite
+transport polytope is compact because
+$0\le z_{is}\le\min\{r_i,d_s\}$.  Since $\mu_e/z_e\to+\infty$ at the boundary,
+each finite objective sublevel stays in the positive interior.  Strict convexity,
+\begin{equation}
+ \nabla^2P(z)=\diag(2\mu_e/z_e^3)\succ0,
+\end{equation}
+then gives a unique primal optimum.
+
+Delete the distinguished root row of $B$ and the corresponding component of
+$\beta$.  Connectedness makes the resulting matrix $\widetilde B$ full row
+rank.  Thus the reduced affine equality system satisfies the linear-independence
+constraint qualification everywhere.  The unique optimum lies in the positive
+interior, so the equality-constrained KKT conditions provide a multiplier
+$\widetilde y^\star$.  After restoring an arbitrary root gauge, stationarity is
+\begin{equation}
+ c-B^\top y^\star=\mu/(z^\star)^2>0.
+ \label{eq:kkt-positive-slack}
+\end{equation}
+Consequently the dual domain is nonempty, the coordinatewise Lagrangian
+infimum is attained at $z^\star$, and primal and dual objective values agree.
+In particular, strong duality and dual attainment used below follow from the
+affine constraint qualification rather than from a numerical solver status.
+
+Under the sign convention in the main text, the Lagrangian is
+\begin{equation}
+ \mathcal L(z,y)=c^\top z+\sum_e\frac{\mu_e}{z_e}
+ +y^\top(\beta-Bz).
+\end{equation}
+For $q_e=c_e-(B^\top y)_e>0$, minimizing one coordinate gives
+$z_e=\sqrt{\mu_e/q_e}$ and value $2\sqrt{\mu_eq_e}$.  This yields
+\cref{eq:dual}.  The dual formula and weak duality do not require a prior
+feasibility oracle.  For every $y$ with $q(y)>0$ and every positive $z$
+satisfying $Bz=\beta$,
+\[
+ P(z)=\mathcal L(z,y)\ge\inf_{u>0}\mathcal L(u,y)=D(y).
+\]
+The strictly positive feasibility assumption at the beginning of this section
+is used only to establish primal attainment, KKT multipliers, and dual
+attainment.  In \cref{thm:soundness}, that assumption is discharged after
+acceptance by the recovered $Z>0$.
+
+Differentiation gives
+\begin{equation}
+ \nabla D(y)=\beta-Bx(y)=-g(y),\qquad \nabla(-D)(y)=g(y),
+\end{equation}
+and
+\begin{equation}
+ \nabla^2(-D)(y)=H(y)
+ =B\diag\!\left(\frac{\sqrt{\mu_e}}{2q_e^{3/2}}\right)B^\top.
+\end{equation}
+Because the graph is connected and all conductances are positive, $H$ is
+positive definite on $\one^\perp$; equivalently, $\nabla^2D=-H$ is negative
+definite there.  Thus $D$ is strictly concave modulo addition of a constant
+potential.
+
+The exact reduced-quota convention matters here.  For the theorem, let $v_0$ be
+the distinguished root and let $\bar\beta$ denote the independently supplied
+binary64 quota vector.  The represented problem keeps $\bar\beta_v$ for
+$v\ne v_0$ and defines
+\begin{equation}
+ \beta_{v_0}:=-\sum_{v\ne v_0}\bar\beta_v,
+ \qquad
+ \Delta_{\rm root}:=\beta_{v_0}-\bar\beta_{v_0}.
+ \label{eq:root-adjustment}
+\end{equation}
+The sum in \cref{eq:root-adjustment} is an exact-real definition; the stored
+binary64 root is only a numerical representative.  The implementation chooses
+$v_0=n-1$, rejects nonfinite data and a declared imbalance exceeding
+$10^{-9}\max\{1,\norm{\bar\beta}_1\}$, and records the supplied root, an
+\texttt{fsum}-based binary64 representative of the implied root, and the
+rounded diagnostic $\widehat\Delta_{\rm root}$ with its relative magnitude.
+The exact-real $\Delta_{\rm root}$ in \cref{eq:root-adjustment} is reconstructed
+from the independent entries by the strict replay and is not a stored floating
+diagnostic.  The constructor does not run a generic
+transportation-feasibility oracle.  With incidence columns positive on the
+client side and negative on the model side, global candidate routines are
+designed for bipartite-sign marginals and a positive feasible allocation.
+Generators begin from a positive binary64 planted flow, but its rounded
+marginals are not asserted to equal $Bx$ in exact-real arithmetic.  For every
+instance on which an optimality claim is made, endpoint acceptance itself
+supplies a strictly positive exact-real feasible $Z$ and therefore discharges
+nonemptiness for that represented instance.  A violation can produce only
+rejection or explicit failure, never a strict accepted allocation.  All
+feasibility and objective claims concern $\beta$
+from \cref{eq:root-adjustment}, not the independently rounded vector
+$\bar\beta$.
+Operationally, the strict replay need not materialize the generally
+non-binary64 root quota: it computes every non-root residual interval and
+defines the root residual interval as the directed negative sum of those
+intervals.  This is algebraically equivalent to the exact-real root convention.
+Consequently $\one^\top g=0$ algebraically, the tree correction exists, and
+$Bz=\beta$ means exact feasibility for the represented input.
+
+\section{Expanded endpoint soundness proof}
+\label{app:soundness}
+
+\subsection{IEEE acceptance predicate and inclusion lemma}
+\label{app:ieee-predicate}
+
+\begin{assumption}[Execution arithmetic contract]
+\label{assump:ieee-execution}
+Every stored scalar is interpreted as its exact finite binary64 dyadic value.
+Every executed binary64 $+,-,\times,/$ operation and square root used by the
+authoritative replay is correctly rounded in round-to-nearest, ties-to-even
+mode; gradual underflow is enabled; and \texttt{nextafter} returns the adjacent
+binary64 value in the requested direction.  Exact sign changes, absolute
+values, comparisons, selections, and index operations have their stated scalar
+semantics.  The implementation executes the declared reduction DAG without an
+unrecorded contraction or reassociation that changes a DAG node.  Reduction
+schedules are compiled from, and remain content-bound to, the same immutable
+problem and tree snapshots from compilation through replay.  Prepared states
+are accepted only when created by the authoritative in-process factory and
+their identity/content seals remain valid.  Candidate independence permits
+arbitrary finite numeric output, not mutation of replay memory, code, private
+capabilities, or floating-point controls during the authoritative call.
+\end{assumption}
+
+All executable soundness conclusions in this appendix and
+\cref{thm:soundness} are conditional on
+\cref{assump:ieee-execution}.  The platform probes are fail-closed health
+checks: passing finitely many probes does not logically establish the
+assumption for all operands, threads, compiler paths, or future executions.
+The requested tolerance is also part of the represented input and must satisfy
+$0<\varepsilon<+\infty$.
+
+Let $\mathbb F$ be binary64, let $\operatorname{fl}$ denote a correctly rounded
+round-to-nearest operation, and let $\operatorname{down}$ and
+$\operatorname{up}$ return the adjacent representable number toward
+$-\infty$ and $+\infty$, respectively.  Degenerate intervals represent stored
+binary64 inputs as exact dyadics.  For $+,-,\times,$ and $/$, the verifier uses
+the standard interval extension, evaluates every required endpoint operation
+with $\operatorname{fl}$, and pads the lower and upper results by
+$\operatorname{down}$ and $\operatorname{up}$.  Division rejects an interval
+containing zero.  For $0\le L\le U$ it uses
+\begin{equation}
+ \sqrt{[L,U]}:=
+ \left[\operatorname{down}(\operatorname{fl}(\sqrt L)),
+       \operatorname{up}(\operatorname{fl}(\sqrt U))\right].
+ \label{eq:ieee-sqrt}
+\end{equation}
+Exact sign changes map $[L,U]$ to $[-U,-L]$.  Every grouped sum is a fixed
+binary tree of these padded interval additions.  A NaN, an infinite endpoint,
+a failed platform-contract check, or an overflow at any node causes rejection.
+
+For completeness, one authoritative replay executes the following fixed DAG.
+\begin{enumerate}[leftmargin=*,itemsep=2pt]
+ \item Validate finite $c,\mu,y,\varepsilon$, prove $\mu_e>0$ and
+ $0<\varepsilon<+\infty$, validate that $T$ spans the graph, and reconstruct
+ the exact-root interval from the independent quota entries according to
+ \cref{eq:root-adjustment}.
+ \item From degenerate input intervals evaluate
+ $Q_e\supseteq c_e-b_e^\top y$.  Reject unless every lower endpoint
+ $\underline Q_e$ is strictly positive.
+ \item Evaluate
+ $X_e=\sqrt{[\mu_e,\mu_e]/Q_e}=[\ell_e,u_e]\ni x_e(y)$, then evaluate
+ $G\supseteq Bx(y)-\beta$ with the precompiled client and model reduction DAGs.
+ \item Apply the fixed tree-routing DAG to $G$.  It produces signed intervals
+ $F_e=[\underline F_e,\overline F_e]$ enclosing the unique tree-supported flow
+ $f_T$ satisfying $Bf_T=g$.  Since $h_T=-f_T$, retain
+ \[
+  H_e=[\underline h_e,\overline h_e]
+     :=[-\overline F_e,-\underline F_e]\ni h_{T,e},\qquad
+  a_e:=\max\{|\underline h_e|,|\overline h_e|\}.
+ \]
+ Equivalently, a backend may route $-G$ directly.  Sign change, absolute value,
+ and selection are exact under \cref{assump:ieee-execution}.  Non-tree
+ correction coordinates are zero.
+ \item On every tree edge evaluate the directed lower endpoint
+ $\underline z_e=\operatorname{down}(\ell_e+\underline h_e)$ and reject unless
+ $\underline z_e>0$.
+ \item Evaluate every nonnegative term
+ \[
+   \frac{\mu_ea_e^2}{\ell_e^2\underline z_e}
+ \]
+ outward and sum the terms with the fixed scalar-reduction DAG.  Reject unless
+ its upper endpoint $\Gamma_U$ is finite and at most the requested
+ $\varepsilon$.
+ \item Accept only after all preceding tests pass.  The strict object is the tuple
+ $(P,y,T,\text{certificate})$ at the requested $\varepsilon$; the fixed replay
+ DAG is determined by the validated topology and tree plans.  The process-local
+ compact summary binds fingerprints of $P$, $y$, $T$, and the binary64
+ tolerance, while full edgewise intervals are transient and can be regenerated
+ only by replay.
+\end{enumerate}
+
+\begin{lemma}[Primitive and replay inclusion]
+\label{lem:ieee-inclusion}
+Under \cref{assump:ieee-execution}, on every accepting replay, each stored
+interval contains the exact-real value of the corresponding node in the replay
+DAG.  In particular,
+\begin{align*}
+ Q_e&\ni q_e(y), & X_e&\ni x_e(y), & G_v&\ni g_v(y),\\
+ F_e&\ni f_{T,e}(y), & Bf_T&=g,
+ &H_e&\ni h_{T,e}=-f_{T,e},\\
+ |h_{T,e}|&\le a_e,
+ &x_e+h_{T,e}&\ge\underline z_e.&&
+\end{align*}
+Moreover, on acceptance,
+\begin{equation}
+ \Gamma_U\ge
+ \sum_{e\in T}\frac{\mu_ea_e^2}{\ell_e^2\underline z_e}
+ \ge
+ \sum_{e\in T}\frac{\mu_eh_e^2}{x_e^2(x_e+h_e)}
+ =G(y,T).
+ \label{eq:replay-gap-chain}
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+A stored finite binary64 number is an exact dyadic, so the claim holds at every
+leaf.  Correct rounding followed by one predecessor or successor encloses the
+exact result of a basic operation; the usual interval endpoint formulas preserve
+inclusion for $+,-,\times,$ and for division away from zero.  Monotonicity of
+square root proves \cref{eq:ieee-sqrt}.  Induction over each fixed pairwise
+reduction DAG therefore encloses the exact grouped incidence sums and the
+exact-root sum.  Tree routing contains only additions and sign changes, so the
+same induction encloses the unique exact tree flow.  Absolute-value maxima and
+the outward arithmetic in the positivity and gap nodes preserve their stated
+one-sided bounds.  The verifier rejects every exceptional nonfinite case, so an
+accepting trace reaches no operation outside these hypotheses.
+The outward scalar reduction gives the first inequality in
+\cref{eq:replay-gap-chain}; $|h_e|\le a_e$, $x_e\ge\ell_e$, and
+$x_e+h_e\ge\underline z_e>0$ give the second.  The final equality is the
+coordinatewise reciprocal identity expanded below together with
+$B(x+h_T)=\beta$.
+\end{proof}
+
+Let $b_e$ denote the oriented incidence column.  The strict domain test encloses
+$q_e=c_e-b_e^\top y$ and proves its lower endpoint positive.  Outward square-root
+evaluation then produces $\ell_e\le x_e=\sqrt{\mu_e/q_e}$.  Tree routing is a
+sequence of exact-real additions and sign changes; applying the same fixed
+reduction DAG to directed lower and upper endpoints encloses the unique exact
+ tree flow $f_T$ satisfying $Bf_T=g$.  Since $h_T=-f_T$, exact sign change
+ gives $H_e=[-\overline F_e,-\underline F_e]\ni h_{T,e}$ and hence
+ $a_e\ge|h_{T,e}|$.
+
+For accepted tree edges,
+\begin{equation}
+ Z_e=x_e+h_e\ge\ell_e+\underline h_e
+ \ge\underline z_e>0.
+\end{equation}
+For non-tree edges $h_e=0$, so $Z_e=x_e>0$.  Since $Bh_T=-g$ by the exact tree
+equations,
+\begin{equation}
+ BZ=B(x+h_T)=\beta+g-g=\beta.
+\end{equation}
+
+To derive the objective bound without a norm relaxation, use feasibility and
+$B^\top y=c-q$:
+\begin{align}
+ P(Z)-D(y)
+ &=c^\top Z+\sum_e\frac{\mu_e}{Z_e}
+ -\beta^\top y-2\sum_e\sqrt{\mu_eq_e} \\
+ &=\sum_e\left(q_eZ_e+\frac{\mu_e}{Z_e}
+ -2\sqrt{\mu_eq_e}\right).
+\end{align}
+Because $q_e=\mu_e/x_e^2$ and $Z_e=x_e+h_e$, direct algebra gives
+\begin{equation}
+ q_eZ_e+\frac{\mu_e}{Z_e}-2\sqrt{\mu_eq_e}
+ =\frac{\mu_eh_e^2}{x_e^2(x_e+h_e)}.
+\end{equation}
+ The term vanishes off the tree.  On a tree edge, positivity and the certified
+ one-sided bounds give
+\begin{equation}
+ \frac{\mu_eh_e^2}{x_e^2(x_e+h_e)}
+ \le\frac{\mu_ea_e^2}{\ell_e^2\underline z_e}.
+\end{equation}
+Weak duality gives $P^\star\ge D(y)$, and the outward scalar-reduction DAG
+contains the right-hand sum.  This proves \cref{thm:soundness}.
+
+\paragraph{Increasing-precision completeness and sharpness.}
+Fix a candidate and tree satisfying $q>0$ and $x+h_T>0$ on every edge.  For a
+sequence of interval evaluations of the same finite DAG, write $I_{k,v}$ for
+the enclosure of exact node value $v$ and assume
+$v\in I_{k,v}$ with $\operatorname{diam}(I_{k,v})\to0$ at every node.  This is
+an interval-continuity hypothesis, not an additional claim about the fixed
+binary64 implementation.  It implies $\ell_{e,k}\to x_e$, both endpoints of
+$H_{e,k}$ converge to $h_e$, $a_{e,k}\to|h_e|$, and
+$\underline z_{e,k}\to x_e+h_e$.  Strict domain and recovered-positivity
+margins make every denominator positive for all sufficiently large $k$.
+For each such $k$, \cref{eq:replay-gap-chain} gives
+$\Gamma_{U,k}\ge G(y,T)$, while continuity of the finite sum gives
+\[
+ \lim_{k\to\infty}\Gamma_{U,k}
+ =G(y,T)=\sum_{e\in T}\frac{\mu_eh_e^2}{x_e^2(x_e+h_e)}.
+\]
+No nesting or monotonicity of the upper endpoints is required.  If
+$G(y,T)<\varepsilon$, the final comparison passes for every sufficiently large
+$k$.  This proves \cref{prop:asymptotic-completeness}.
+
+For comparison, the legacy sign-oblivious predicate replaces the signed lower
+bound on $x+h$ by $x-|h|$.  If
+$\rho=\max_e|h_e|/x_e\ge1$, its recovered-positivity gate rejects and we set
+$\Gamma_{\rm abs}=+\infty$; no finite limiting comparison is claimed.  If
+$\rho<1$, its bound converges to $\Gamma_{\rm abs}$ in
+\cref{eq:limiting-conservative-gap}.  On an edge with $h<0$ the legacy and exact
+denominators coincide.  For $h>0$, their ratio is $(x+h)/(x-h)$.
+Edges with $h=0$ contribute zero to both sums, so the termwise inequality holds
+trivially there.  Hence every nonzero term ratio lies in
+$[1,(1+\rho)/(1-\rho)]$.  Summing nonnegative terms proves
+\cref{eq:absolute-sharpness}.  This is an ablation result for the retired
+absolute predicate, not a limitation of the production signed predicate.
+
+\paragraph{Binary64 realization.}
+The implementation additionally computes
+\begin{equation}
+ \widehat z=\operatorname{fl}\!\left(
+ \operatorname{fl}(x(y))+\operatorname{fl}(h_T(y))\right)
+\end{equation}
+for downstream use.  Its positivity and residual are measured, but its rounded
+entries are not substituted into the exact-real theorem.  The certificate binds
+$Z(P,y,T)$, not a claim that $B\widehat z=\beta$ bitwise.
+
+The same distinction is essential in the MMFL interpretation.
+\Cref{thm:mmfl} applies only when the probabilities in its
+Horvitz--Thompson denominators equal the actual categorical inclusion
+probabilities.  A sampler that row-normalizes $\widehat z$, overwrites a final
+CDF endpoint, or otherwise changes the realized inclusion law cannot continue
+to use the unmodified entries of $\widehat z$ as exact denominators without
+introducing bias.  A rigorous downstream interface must therefore either sample
+from the implicit object using a certified exact-real comparison procedure, or
+define and use one finite realized probability vector consistently in both the
+sampler and estimator while separately certifying or reporting its marginal and
+objective perturbations.  The measured residual of $\widehat z$ alone does not
+upgrade it to the exact-real object authorized by the endpoint theorem.
+Accordingly, a conditional-MSE value evaluated in binary64 at $\widehat z$ is a
+diagnostic for that materialized probability vector; it is not an interval
+consequence of the certificate for $Z$.  The experiments keep strict coverage,
+materialized residuals, and materialized conditional MSE as separate fields.
+
+\section{Linear verifier and lower-bound details}
+\label{app:linear}
+
+For each client and model group, preprocessing stores a stable permutation,
+segment boundaries, and the balanced pairwise-addition schedule.  The tree plan
+stores level order, active parents, child signs, compact group labels, and one
+pairwise schedule per level.  With a fixed topology these arrays occupy
+$O(m+n)$ words.
+
+Each grouped-reduction plan uses an active-frontier DAG.  Within one plan, a
+nonempty group of degree $d$ creates exactly $d-1$ addition nodes: leaves that
+have no partner are carried only as frontier references, and a completed group
+leaves the frontier.  Thus one plan with $g$ nonempty groups over $m$ inputs
+creates exactly
+\begin{equation}
+ \sum_{j=1}^g(d_j-1)=m-g
+ \label{eq:reduction-node-count}
+\end{equation}
+stored additions and at most $2m-g$ workspace values including the inputs.
+This is a per-plan count, not a count summed over every verifier plan.  It is
+independent of $d_{\max}$, including one giant group together with
+$\Theta(m)$ singleton groups.  Applying the same argument separately to the
+incidence plans and to each disjoint tree-level grouping gives total topology
+storage $O(m+n)$ and total tree-plan storage $O(n)$.
+
+One recovery-only replay performs a constant number of edgewise interval
+operations, two grouped incidence reductions, a tree pass in which every vertex
+and tree edge is visited a constant number of times, and one gap reduction over
+tree edges.  Hence the arithmetic work and temporary state are $O(m+n)$.  A
+connected graph has $m\ge n-1$, so both are $O(m)$.
+
+For a restricted probe observation, consider zero-error verifiers whose accepting
+authority explicitly establishes every dual inequality
+$c_e-b_e^\top y>0$ by reading fresh, explicit cost arrays.  No trusted digest,
+proof oracle, or certified dynamic-update oracle is part of this input contract.
+Fix the legal one-word cost alphabet $\mathbb W$ and the represented input
+class.  Relative to an accepting trace and its candidate $y$, call edge $e$
+\emph{slack-sensitive} if there exists
+$\widetilde c_e\in\mathbb W$ such that replacing only $c_e$ by
+$\widetilde c_e$ leaves a legal represented input and
+\begin{equation}
+ \widetilde c_e-b_e^\top y\le0.
+ \label{eq:slack-sensitive}
+\end{equation}
+This condition is explicit: it is not automatic under a bounded binary64 range,
+a nonnegative-cost restriction, or an overflowed potential difference.
+
+Now take an accepting trace of a zero-error verifier in this restricted class
+and fix any random coins.
+If the trace omits a slack-sensitive word $c_{e_0}$, perform the legal replacement
+from \cref{eq:slack-sensitive}.  Every probed word, branch, and proposed auxiliary
+certificate remains unchanged, so the verifier still accepts although the
+claimed strict slack is nonpositive, contradicting soundness.  Thus every
+accepting trace probes every slack-sensitive cost coordinate.  Under the
+additional premise that all $m$ edges are slack-sensitive, this gives
+$\Omega(m)$ word probes.  This observation is not a lower bound for general
+certificate systems: it says nothing about an always-reject algorithm,
+authenticated preprocessing, a proof oracle, or an input class in which some
+edge can never cross the slack boundary.  It also does not apply to a sound
+primal certificate that establishes optimality without individually proving
+these dual slacks.  Accordingly this is a lower bound for fresh-array,
+edgewise dual-slack verification, not for every possible endpoint verifier.
+
+\section{Exact-real local recurrences and executable scope}
+\label{app:local}
+
+All pseudoinverse inequalities below are restricted to $\one^\perp$.  The case
+$\lambda=0$ is stationary because positive definiteness on $\one^\perp$
+implies $g=0$; all contraction ratios below assume $\lambda>0$.  For
+$v\in\one^\perp$ and balanced $r$, define
+\begin{equation}
+ \norm{v}_H:=\sqrt{v^\top Hv},
+ \qquad
+ \norm{r}_{H^\dagger}:=\sqrt{r^\top H^\dagger r}.
+ \label{eq:energy-norms}
+\end{equation}
+At the current point let
+\begin{equation}
+ s=-H^\dagger g,\qquad
+ \lambda=\norm{s}_H,\qquad
+ \sigma=\min_e\mu_e^{1/4}q_e^{1/4},\qquad
+ \eta=\frac{\sqrt2\lambda}{\sigma}.
+ \label{eq:local-quantities}
+\end{equation}
+For any direction $d$ whose segment remains in the dual domain, set
+$y_+=y+d$ and define $q_+,g_+,H_+,\sigma_+,\lambda_+$ at $y_+$ by the same
+formulas, with
+\begin{equation}
+ \lambda_+:=\sqrt{g_+^\top H_+^\dagger g_+},
+ \qquad
+ \eta_+(d):=\frac{\sqrt2\lambda_+}{\sigma_+}.
+ \label{eq:eta-plus-definition}
+\end{equation}
+
+The following lemma isolates the one estimate used by all three local tiers.
+It applies to an arbitrary exact-real direction, rather than only to a direction
+produced by a particular linear solver.
+
+\begin{lemma}[Unified inexact-direction bound]
+\label{lem:unified-inexact}
+Let $d\in\one^\perp$ and define
+\begin{equation}
+ r(d):=g+Hd,\qquad
+ \theta(d):=\frac{\norm{r(d)}_{H^\dagger}}{\lambda},\qquad
+ \kappa(d):=\frac{\norm{d}_H}{\lambda},\qquad
+ \rho(d):=\max_e\frac{|b_e^\top d|}{q_e}.
+ \label{eq:unified-direction-quantities}
+\end{equation}
+If $\rho(d)<1$, every point $y+td$, $t\in[0,1]$, is in the dual domain and
+\begin{align}
+ \eta_+(d)
+ &\le \eta A(\rho(d))
+ \left[\theta(d)+
+ \left((1-\rho(d))^{-3/2}-1\right)\kappa(d)\right],
+ \label{eq:unified-inexact-bound}\\
+ A(\rho)&:=(1-\rho)^{-1/4}(1+\rho)^{3/4}.
+ \nonumber
+\end{align}
+Moreover, $\rho(d)\le\kappa(d)\eta$.
+\end{lemma}
+
+\begin{proof}
+For edge incidence $b_e$ and $H=BW B^\top$, Thomson's principle gives
+\begin{equation}
+ b_e^\top H^\dagger b_e\le W_e^{-1},
+ \label{eq:resistance}
+\end{equation}
+because sending one unit only on edge $e$ is a feasible comparison flow for
+the demand $b_e$.  Energy Cauchy--Schwarz and
+$W_e=\sqrt{\mu_e}/(2q_e^{3/2})$ therefore imply
+\begin{equation}
+ \frac{|b_e^\top d|}{q_e}
+ \le \frac{\norm{d}_H}{q_e\sqrt{W_e}}
+ =\frac{\sqrt2\norm{d}_H}{\mu_e^{1/4}q_e^{1/4}}
+ \le\kappa(d)\eta.
+ \label{eq:relative-direction-bound}
+\end{equation}
+This proves the final assertion.  If $\rho:=\rho(d)<1$, then
+$q_e(y+td)=q_e-tb_e^\top d\ge(1-\rho)q_e>0$ for $0\le t\le1$, so the entire
+segment is in the domain.  With $H_t:=H(y+td)$, the corresponding edge-weight
+ratios give
+\begin{equation}
+ (1+\rho)^{-3/2}H\preceq H_t
+ \preceq(1-\rho)^{-3/2}H.
+ \label{eq:hessian-sandwich}
+\end{equation}
+Since $g(y+d)=g+\int_0^1H_t d\,dt$, adding and subtracting $Hd$ yields
+\begin{equation}
+ g_+=r(d)+\int_0^1(H_t-H)d\,dt.
+ \label{eq:gradient-integral}
+\end{equation}
+On $\one^\perp$, 
+\cref{eq:hessian-sandwich} bounds the $H$-scaled operator norm of
+$H_t-H$ by $(1-\rho)^{-3/2}-1$.  Hence
+\begin{equation}
+ \norm{g_+}_{H^\dagger}
+ \le\lambda\left[\theta(d)+
+ \left((1-\rho)^{-3/2}-1\right)\kappa(d)\right].
+ \label{eq:gradient-energy-bound}
+\end{equation}
+At the endpoint, 
+$H_+\succeq(1+\rho)^{-3/2}H$ and
+$\sigma_+\ge(1-\rho)^{1/4}\sigma$.  Thus
+$\norm{g_+}_{H_+^\dagger}\le
+(1+\rho)^{3/4}\norm{g_+}_{H^\dagger}$; substituting this and
+\cref{eq:gradient-energy-bound} into
+$\eta_+(d)=\sqrt2\norm{g_+}_{H_+^\dagger}/\sigma_+$ proves
+\cref{eq:unified-inexact-bound}.
+\end{proof}
+
+For the exact Newton direction $d=s$, one has
+$\theta(s)=0$, $\kappa(s)=1$, and
+\begin{equation}
+ \rho_s:=\rho(s)\le\eta.
+ \label{eq:exact-relative-step}
+\end{equation}
+Consequently, when $\eta\le0.1$, the entire segment is in the domain and
+\cref{lem:unified-inexact} gives
+\begin{equation}
+ \eta_+(s)\le
+ \eta(1-\rho_s)^{-1/4}(1+\rho_s)^{3/4}
+ \left[(1-\rho_s)^{-3/2}-1\right].
+ \label{eq:exact-eta-update}
+\end{equation}
+Direct differentiation shows that the scalar factor multiplying $\eta$, divided
+by $\rho_s$, is increasing on $[0,0.1]$ and is below $1.889$ at the endpoint.
+Together with $\rho_s\le\eta$, this proves
+$\eta_+(s)\le2\eta^2$.
+
+Continue to assume $\eta\le0.1$.  For an inexact direction
+$\widetilde s=s+e\in\one^\perp$ with Newton residual
+$r_N=H\widetilde s+g$, one has
+$r_N=He$ and therefore
+$\norm{e}_H=\norm{r_N}_{H^\dagger}$.  Writing
+$\theta:=\norm{r_N}_{H^\dagger}/\lambda$, the triangle inequality gives
+$\kappa(\widetilde s)\le1+\theta$ and
+\begin{equation}
+ \rho_{\widetilde s}:=\rho(\widetilde s)
+ \le(1+\theta)\eta.
+ \label{eq:inexact-relative-step}
+\end{equation}
+Under the exact mathematical forcing condition
+\begin{equation}
+ \norm{r_N}_{H^\dagger}\le\frac{\eta\lambda}{4},
+ \label{eq:mathematical-forcing}
+\end{equation}
+one has $\theta\le\eta/4$ and
+$\rho_{\widetilde s}\le(1+\eta/4)\eta\le0.1025$.  The entire segment is
+therefore in the domain, and 
+\cref{lem:unified-inexact} gives
+\begin{align}
+ \eta_+(\widetilde s)
+ &\le\eta(1-\rho_{\widetilde s})^{-1/4}
+             (1+\rho_{\widetilde s})^{3/4} \notag\\
+ &\quad{}\times\left[\frac{\eta}{4}+
+ \left((1-\rho_{\widetilde s})^{-3/2}-1\right)(1+\eta/4)\right]
+ <3\eta^2.
+ \label{eq:inexact-eta-update}
+\end{align}
+The ratio of the displayed upper bound to $\eta^2$ is increasing for
+$0<\eta\le0.1$ after substituting
+$\rho_{\widetilde s}=(1+\eta/4)\eta$; its endpoint is below $2.272$.
+
+There is also a weaker exact-real contraction tier.  If $\theta\le0.4$, then
+\cref{eq:inexact-relative-step} gives
+$\rho_{\widetilde s}\le(1+\theta)\eta\le0.14$, so the entire segment remains
+in the domain.  The unified bound specializes to
+\begin{align}
+ \eta_+(\widetilde s)
+ &\le \eta A(\rho_{\widetilde s})
+ \left[\theta+
+ \left((1-\rho_{\widetilde s})^{-3/2}-1\right)(1+\theta)\right].
+ \label{eq:contraction-tier}
+\end{align}
+Every displayed factor is nondecreasing on the stated rectangle.  At
+$\rho=7/50$,
+\[
+ A(7/50)^4=\frac{57^3}{50^2\,43}
+ <\left(\frac{573}{500}\right)^4.
+\]
+Moreover,
+\[
+ \left(\frac{50}{43}\right)^3
+ <\left(\frac{3511}{2800}\right)^2,
+\]
+and hence
+\[
+ \frac25+\left((43/50)^{-3/2}-1\right)\frac75
+ =\frac75\left(\frac{50}{43}\right)^{3/2}-1
+ <\frac{1511}{2000}.
+\]
+Therefore
+\[
+ A(7/50)\left[
+ \frac25+\left((43/50)^{-3/2}-1\right)\frac75
+ \right]
+ <\frac{573}{500}\frac{1511}{2000}
+ =\frac{865803}{10^6}<\frac{433}{500}.
+\]
+Hence
+$\eta_+(\widetilde s)<0.866\eta\le0.0866$ and the exact-real basin is
+invariant.  A sequence using this tier has linear contraction; only the
+quadratic tier in \cref{eq:inexact-eta-update} supports the corresponding
+doubly logarithmic local iteration count.
+
+The production screens obtain their energy bounds without solving another
+Laplacian system.  For any balanced demand $d$, Thomson's principle gives
+\begin{equation}
+ \norm{d}_{H^\dagger}^2
+ =\min_{Bf=d}\sum_e\frac{f_e^2}{W_e}
+ \le \sum_{e\in T}\frac{f_{T,e}(d)^2}{W_e}.
+ \label{eq:tree-energy-upper}
+\end{equation}
+Signed interval tree routing encloses $f_T(d)$, and outward lower bounds on
+$W_e$ therefore give an executable upper bound on the right-hand side.  Applied
+to $d=g$, this gives the basin upper bound on $\eta$; applied to $d=r_N$, its
+square root is the forcing quantity $R_U\ge\norm{r_N}_{H^\dagger}$.
+
+For the lower comparison, define the exact quantity
+\[
+ \lambda_L:=
+ \begin{cases}
+ |g^\top\widetilde s|/\norm{\widetilde s}_H,
+   & \norm{\widetilde s}_H>0,\\
+ 0, & \norm{\widetilde s}_H=0.
+ \end{cases}
+\]
+Cauchy--Schwarz gives $\lambda_L\le\lambda$.  The executable replay evaluates
+the reduced-gauge pairing with a directed absolute lower endpoint and evaluates
+$\norm{\widetilde s}_H$ from an outward upper energy endpoint.  Their quotient
+is a lower bound $\underline\lambda_L\le\lambda_L$.  Thus
+$R_U\le0.4\underline\lambda_L$ implies the exact-real contraction hypothesis.
+However, the implementation evaluates this screen for the proposed binary64
+direction and then stores a separately rounded update, including a rounded
+gauge normalization.  The screen therefore does not certify that realized
+stored transition.  CertQuota-S is described as interval-screened and
+terminal-endpoint-certified, not as an executable path certificate.  Endpoint
+soundness in \cref{thm:soundness} assumes none of these local conditions.
+
+\section{Scaled standard-SOC candidate and dual recovery}
+\label{app:conic}
+
+The conic reference uses $t_e\ge1/x_e$.  Choose a positive flow scale $s_x$ and
+write
+\begin{equation}
+ x=s_xz,\qquad t=s_x^{-1}w.
+\end{equation}
+Then $x_et_e\ge1$ is exactly $z_ew_e\ge1$, which is equivalent to the standard
+second-order cone
+\begin{equation}
+ \norm{(2,z_e-w_e)}_2\le z_e+w_e.
+\end{equation}
+The scaled objective is
+\begin{equation}
+ \frac{c^\top(s_xz)+\mu^\top(s_x^{-1}w)}{s_f},
+\end{equation}
+where $s_f>0$ is an objective scale.  Let
+$R=\diag(r_1,\ldots,r_{n-1})$ be the row scaling and impose
+\begin{equation}
+ R\widetilde B(s_xz)=R\widetilde\beta.
+\end{equation}
+If CVXPY/Clarabel returns equality multiplier $\xi$ for left-minus-right zero,
+stationarity with respect to $z$ gives
+\begin{equation}
+ \frac1{s_f}\left(c-\frac{\mu}{x^2}\right)
+ +\widetilde B^\top R\xi=0.
+\end{equation}
+Since the reciprocal KKT convention is
+$c-\mu/x^2=B^\top y$, the canonical reduced potential is
+\begin{equation}
+ y_{1:n-1}=-s_fR\xi,
+ \qquad y_n=0,
+ \label{eq:conic-dual-unscale}
+\end{equation}
+followed by an optional mean-centering gauge shift.  Both the objective scaling
+and the minus sign in \cref{eq:conic-dual-unscale} are essential.  The conic
+solver's own status is not trusted: the recovered $y$ is passed to IEEE-V.
+
+\section{Finite-precision and caching contract}
+\label{app:finite}
+
+The IEEE implementation relies on round-to-nearest binary64 operations plus
+directed predecessor/successor adjustments to enclose exact dyadic expressions.
+Its fail-closed platform gate executes six classes of spot probes: binary64
+layout, boundary behavior of \texttt{nextafter}, ties-to-even, gradual
+underflow versus FTZ/DAZ semantics, selected $+,-,\times,/$ identities, and
+selected square roots.  Successful static probes are cached, but lightweight
+current-thread sentinels are repeated at every certificate entry and when a
+prepared state is reused.  Thus a detected rounding-mode or subnormal-control
+change causes rejection.  These finite probes are not a formal proof of correct
+rounding over all operands, all threads and future states, every SIMD or compiler
+path, or the entire square-root domain; those remain the explicit hypotheses of
+\cref{assump:ieee-execution,lem:ieee-inclusion}.  Probe success therefore does
+not discharge the arithmetic assumption; it only permits the fail-closed
+implementation to proceed under that assumption.  High-precision Arb evaluation
+is called only by the audit backend, never by the timed IEEE path.
+
+The cache has two ownership levels.  A problem topology owns client/model
+grouped-reduction plans, and the fixed tree owns its level-reduction plans.  A
+dynamic problem may reuse a topology owner only after exact endpoint-array and
+dimension checks.  The cache contains no $q$, $x$, $g$, tree-flow, positivity,
+or gap endpoint.  In the strict frontier, common topology and tree plans are
+prewarmed before the method-order rotation; the current-identity plan needed by
+legacy stepwise code is likewise prewarmed before each round.  These times are
+reported separately and are not charged to whichever method happens to run
+first.
+
+The strict certificate object stores the backend, requested-tolerance binding,
+an outward upper bound on the pre-correction $\norm{g(y)}_1$, a lower bound on
+$\min_e x_e(y)$ before correction, the gap upper bound, acceptance flags, and
+content fingerprints for its replay inputs.  It intentionally does not retain
+the full edgewise $\{\ell_e,a_e\}$ arrays.  Authority is process-local: an
+unsealed fabricated summary cannot authorize a return, and a serialized summary
+must be replayed from its bound inputs rather than treated as a self-contained
+proof.  The complete in-process representation is the immutable replay tuple
+\begin{equation}
+ (P,y,T,\text{certificate}),
+\end{equation}
+which identifies $Z(P,y,T)$.  The separately emitted binary64 vector and measured
+residual are convenience outputs, not replacements for this representation.
+
+\section{A42 confirmatory and audit protocol}
+\label{app:protocol}
+\small
+
+\paragraph{Release boundary and evidence graph.}
+The full-paper release identifier is
+\texttt{certquota-}\allowbreak\texttt{fullpaper-}\allowbreak
+\texttt{v1-a42}.  A42 is a clean computation release, not an
+incremental update to A41: no A41 raw row, timing, aggregate, bootstrap draw, or
+figure may enter an A42 result.  A41 remains immutable historical evidence.
+After code, tests, the frozen protocol, and fixed configuration files are
+closed, one execution-source manifest is created exactly once; every formal
+process rehashes that closure and binds the same manifest digest before doing
+work.
+
+The evidence graph contains 13 logical producers.  Nine rerun inherited frozen
+designs: certificate behavior, dynamic sequences, the named-method strict
+frontier, internal standard-SOC reference, external standard-SOC stress,
+verifier scaling, conditional-MSE allocation, official MovieLens topology, and
+the independent Arb audit.  The last producer has a 256-bit primary pass and a
+384-bit rejection-safety pass but remains one logical panel.  Four new
+producers are S1 (skewed reduction), S2 (certificate sharpness), A1 (MovieLens
+user--genre sampling), and P1 (full solve--verify--materialize scaling).  Twelve
+analysis products are then created: strict-frontier and internal-SOC records
+share one analysis, while the two Arb passes share another; all other panels
+have one analysis each.  This declared count prevents an unregistered result or
+a selectively omitted panel from entering the manuscript.
+
+\paragraph{Clean-execution contract.}
+Every target and its exclusive \texttt{.summary.json} sidecar must be absent at
+launch.  Producers run sequentially with the five OpenMP/BLAS thread variables
+fixed to one and with the source-manifest path and digest in the environment.
+Resume, sharding, hand-selected cell indices, resource-dependent substitution,
+and pooling across releases are forbidden.  A sidecar binds the raw file's
+repository-relative path, SHA-256, exact nonblank row count, execution-source
+digest, and runtime contract; failures and non-success statuses remain in the
+denominator.  Analyses read only these A42-bound files.  Numerical statements in
+the paper are generated from the 12 analyses through one macro file, rather
+than transcribed manually.
+
+\paragraph{Inherited dynamic grid.}
+For each of three graph families and seeds 3701--3705, the design uses two
+20-round smooth sequences at perturbation scales $10^{-3}$ and $10^{-2}$ and
+one 30-round shock sequence.  The resulting 45 sequences contain 1,050 rounds.
+The order of CertQuota-V, CertQuota-S, and damped Newton is offset by
+$(\text{cell}+\text{round}-1)\bmod3$, giving exactly 350 appearances in each
+method position; ratios are paired within round.  The bootstrap resamples the
+15 independent (graph family, sequence-seed) clusters, with scales and
+smooth/shock trajectories treated as subsequences within cluster.  Basin-screen
+membership and terminal endpoint acceptance are reported separately.  This is
+a smooth/shock warm-start experiment, not an arbitrary-initialization global
+solver comparison.
+
+\paragraph{Inherited named-method strict frontier.}
+The frontier crosses the client-regular, community, and bottleneck families;
+seeds 3711--3715; 100,000 edges; five rounds; and perturbation scale $10^{-3}$.
+The four order-rotated methods are CertQuota-V, the frozen interval-screened
+IEEE candidate pipeline followed by terminal IEEE replay (CertQuota-S), the
+same candidate cascade followed by 70-digit Arb replay, and alternate scaling
+followed by the same IEEE replay.  Total method time begins with candidate
+generation and includes strict-state preparation, authoritative verification,
+and materialization; common router and topology preparation are reported
+separately.  Candidate status and long-tail timing quantiles are retained.  The
+panel compares named variants under one representation, process, software, and
+hardware contract.  Its ranking field is fixed to
+\texttt{claim\_eligible=false}; it cannot authorize a fastest-solver claim.
+
+\paragraph{Inherited standard-SOC reference and stress panels.}
+The internal correctness grid crosses three families, five seeds, and edge
+targets 300, 1,000, and 3,000, giving 45 instances and 90 method records.  Both
+the CertQuota-V and CVXPY/Clarabel standard-SOC candidates are submitted to the
+same terminal IEEE endpoint verifier.  This panel can establish small-instance
+agreement only; it is not an external timing ranking.
+
+The external stress grid crosses 10,000 and 30,000 edges, the same three
+families, and seeds 3811--3813, giving 18 instances and 36 method records.  All
+candidate failures and verifier rejections are retained.  Reference and
+performance gates require complete endpoint-authorized matching; if either gate
+fails, no external speedup is estimated.  The optional 100,000-edge case is not
+part of the formal grid.  Environment probes record unavailable packages such
+as VSDP or BlockIP as unavailable, never as synthetic timeouts.
+
+\paragraph{Inherited independent Arb audit.}
+The 256-bit implementation imports none of the production solver, certificate,
+interval, tree, or verifier modules.  From frozen public arrays it independently
+reconstructs the standard-SOC candidate convention, equality-dual sign and
+scaling, stable-Kruskal tree, exact-dyadic tree routing, and stable recovery-gap
+sum.  Deterministic replay is bound by graph and primal/dual array hashes,
+iteration counts, and frozen candidate metrics.  A second 384-bit pass revisits
+every primary-pass rejection named by the registered design.  The checker may
+diagnose agreement or bound inflation for the same predicate; it is neither an
+external baseline nor a general verified conic solver.
+
+\paragraph{Inherited verifier scaling.}
+Edge targets 30,000, 100,000, 300,000, one million, three million, and ten
+million are crossed with seeds 3701--3710.  One warm-up is excluded and three
+timed endpoint replays are retained per instance.  A seed-cluster bootstrap fits
+log time on log edge count.  Recursive storage accounting follows unique NumPy
+base chains and memoryview owners, counts shared owners once across problem and
+tree plans, and excludes the weak-reference cache, transient compilation
+storage, and allocator overhead.  Complete grid coverage and the structural
+storage gate are primary; fitted runtime exponents are descriptive, not proofs
+of complexity.
+
+\paragraph{Inherited conditional-MSE allocation grid.}
+The 32 graph cells cross client counts 100 and 1,000; model counts 3 and 10;
+eligibility degrees 2 and 5 capped by model count; Gamma-shape heterogeneity
+$0.1$ and $1$; and quota ratios 1 and 10.  Each cell has five independent
+graph/update replicates, each with 20 unreported burn-in fields followed by 20
+evaluation fields and 11 policies: one analytic uniform policy and ten
+nonuniform policies.  The design therefore specifies 35,200 records, including
+32,000 strict solves.  Stale ages 1, 5, and 20 must use the declared past norm
+field without fallback.  MSE ratios are paired within evaluation field,
+inference clusters by the 160 graph replicates, and Holm's procedure adjusts the
+two primary comparisons; effects are also stratified by quota ratio.  The
+endpoint is the analytic conditional-MSE formula evaluated at the materialized
+binary64 probability vector for the stated independent categorical law, not an
+interval certificate for a pseudorandom sampler implementation or a
+neural-training result.  The registered row targets satisfy
+$\max_i r_i\le0.2$; the materialized residual gate therefore keeps every row
+mass below one, and the same positive finite vector is used as both the
+categorical law and the Horvitz--Thompson denominator.
+
+\paragraph{Inherited official-topology stress.}
+The A39 design parses the official MovieLens-1M archive identified
+by MD5 \nolinkurl{c4d9eecfca2ab87c1945afe126590906}; the archive is neither
+downloaded by the run nor redistributed.  User--movie eligibility is
+observational, while weights, costs, marginals, optimum, and warm starts are
+synthetic.  Five frozen planted-weight cases are submitted to strict endpoint
+verification.  This topology stress can support scale and provenance claims,
+but neither recommender quality nor a solver ranking
+\citep{harper2015movielens}.
+
+\paragraph{Inherited untimed certificate behavior.}
+The frozen design crosses three graph families; reciprocal-weight spans 0, 4,
+and 8; quota ratios 1 and 10; and valid, cold, and deliberately domain-invalid
+potentials, giving 54 planned cells.  Direct verification and terminal control
+flow are both recorded, including repair and explicit failure.  Every planned
+cell remains in the artifact.  This tests fail-closed rejection and control-flow
+coverage, not runtime superiority.
+
+\paragraph{S1: adversarial segmented-reduction topology.}
+For each
+\[
+m\in\{30{,}000,100{,}000,300{,}000,10^6,3\cdot10^6,10^7\},
+\]
+one
+group contains half the inputs and every remaining input is a singleton.  Ten
+fixed seeds 42001--42010 generate finite positive binary64 values.  The plan is
+compiled once; one execution is excluded as warm-up and three are timed.  The
+primary gate is structural: with $g$ nonempty groups, the stored addition-node
+count must equal $m-g$, workspace length must equal $m+(m-g)$, plan bytes must
+obey the declared linear dtype bound, and no allocation or arithmetic
+substitution is allowed.  Outputs are bitwise compared with an independently
+executed stable levelwise reference through 300,000 inputs and checked against
+an analytic/high-precision enclosure above that size.  Timing slopes are
+descriptive; the exact node count, not a regression, validates the storage/work
+construction.
+
+\paragraph{S2: certificate sharpness and acceptance envelope.}
+Thirty public-array base instances cross the three graph families with scales
+$(64,8,4)$, $(256,32,4)$, and $(1024,128,4)$ for (clients, models, degree),
+using respectively four, four, and two replicates per family.  A damped-Newton
+solve that cannot access planted optima supplies each reference dual point.
+Seven seeded relative-slack perturbation radii
+$\{0,10^{-10},10^{-8},10^{-6},10^{-4},10^{-2},5\cdot10^{-2}\}$ produce 210
+candidates; decisions are evaluated at five frozen relative tolerances from
+$10^{-14}$ through $10^{-6}$.
+
+For every candidate on the same fixed tree, a 100-decimal independent replay
+computes the exact recovery identity gap $G$, the limiting
+absolute-correction bound $\Gamma_{\rm abs}$, the production signed outward
+bound $\Gamma_U$, the signed edgewise decision, and the legacy global-$\ell_1$
+decision.  For every finite positive case the primary gate requires
+\[
+ G\leq\Gamma_{\rm abs}
+ \leq\frac{1+\rho}{1-\rho}G,
+ \qquad \rho=\max_e |h_e|/x_e<1,
+\]
+requires $\Gamma_U$ to contain $G$ under the declared binary64 contract, and
+requires the signed upper bound not to exceed the absolute-predicate upper
+bound when both replay identical enclosures.  Domain and positivity rejections remain in the
+denominator.  Inflation and acceptance differences are descriptive measures of
+sharpness, not new soundness assumptions.
+
+\paragraph{A1: MovieLens user--genre sampling case study.}
+This panel reuses the same checksum-verified local MovieLens-1M archive and reads
+only ratings and movie genres, not demographic fields.  Genres are model tasks
+and users are clients.  The common support is selected retrospectively by
+requiring positive observations on both sides of each cutoff.  Cutoff quantiles
+$\{0.40,0.45,0.50,0.55,0.60\}$ create historical/later splits on common
+user--genre support.  Rating-derived two-coordinate update proxies have a
+strictly positive second coordinate on every retained edge.  Each cutoff is
+crossed with equal and history-popularity model quotas and with three
+quota-matched policies: later-update norm (a diagnostic oracle), historical
+update norm (a past-only weight proxy evaluated on that retrospective support),
+and equal edge weight.  Every optimized
+policy must pass the same endpoint verifier.  The endpoint is analytic
+conditional Horvitz--Thompson MSE on later updates.  The ten paired cells are a
+descriptive allocation case study; they authorize no neural training,
+recommendation, demographic-fairness, or held-out-ranking claim.
+
+\paragraph{P1: full solve--verify--materialize scaling.}
+The three graph families are crossed with edge targets 30,000, 100,000,
+300,000, one million, and three million and seeds 42501--42503, yielding 45
+setup cells.  All use degree 8, reciprocal-weight log span 4, quota ratio 1,
+zero linear cost, and maximum client budget 0.2.  A deterministic seeded
+perturbation of the planted dual optimum has maximum relative slack change
+exactly 0.05.  Graph generation, router construction, and eager plan
+compilation are measured as cold setup but excluded from the timed pipeline.
+After one excluded warm-up, three repetitions per cell time the public
+\texttt{solve\_verified} call through returned binary64 materialization, giving
+135 planned timing records.  Candidate, prepare, verify, fallback,
+materialization, and unattributed phase times and every attempted-candidate
+status remain visible.
+
+The primary P1 gate requires exact 45-cell and 135-record coverage, strict
+endpoint acceptance for every warm-up and timed repetition, finite numeric
+fields, normalized materialized marginal residual at most $10^{-9}$, and exact
+raw/sidecar/source binding.  Seed-median timings, phase shares, and log--log
+slopes are descriptive.  The panel closes the verifier-only scope gap, but its
+regression does not prove a globally near-linear candidate solver.
+
+\paragraph{A43 reviewer-obstacle amendment.}
+A43 is frozen separately under
+\texttt{certquota-}\allowbreak\texttt{reviewer-}\allowbreak
+\texttt{obstacles-a43}; its execution-source SHA-256 begins
+\texttt{e78292a27473} and binds 139 files.  It neither changes nor pools any A42
+population.  T1 crosses three graph families, two scales, three seeds, two
+registered candidate perturbations, four tree rules, and four objective-scaled
+tolerances.  The same public-array damped-Newton candidate is replayed on every
+tree.  All decisions, finite bounds, correction magnitudes, setup times, and
+verification times remain in the 576-row denominator.  Tree insensitivity is
+authorized only if all 144 cells agree and the registered
+95th percentile finite-gap ratio is at most 1.10; the observed panel fails both
+conditions and is reported as a negative result.
+
+R1 uses cutoff quantiles 0.40, 0.50, and 0.60 of the checksum-verified
+MovieLens timestamps.  Support, pair counts, rating coordinates, reciprocal
+weights, induced quotas, public start, and maximum-conductance tree use ratings
+at or before the cutoff only.  Pairs need at least two historical ratings and
+the largest connected historical component is retained.  The resulting quotas
+are induced by a strictly positive within-user historical-count flow, so no
+planted optimum is consulted.  The endpoint is optimization acceptance and a
+materialized residual; recommendation accuracy is ineligible.
+
+One accepted R1 result is serialized as a canonical
+\texttt{certquota-endpoint-replay-v1} bundle.  It stores exact binary64 arrays,
+candidate, tree, tolerance, and a SHA-256 payload binding, but no serializable
+authority.  A fresh object reconstruction reruns the strict backend and must
+both accept and match the claimed fingerprints.  Tampering, malformed arrays,
+and unaccepted exports fail closed in tests.  The first R1 CLI attempt used a
+relative output argument and failed while writing its summary after all solves;
+its unchanged raw/replay files are retained under a named quarantine and are
+ineligible.  The panel was rerun from zero under the same frozen source hash
+with an absolute output argument; only the complete exclusive-create rerun is
+analyzed.
+
+\paragraph{Release authorization and claim boundary.}
+Eight PDF/PNG figure pairs are regenerated from the 12 A42 analyses.  Only
+after the manuscript and all derivatives are final is a
+submission manifest created.  The read-only release audit recomputes every
+analysis, reparses both MovieLens panels from the local official archive,
+byte-compares all eight figure pairs, builds one wheel and one source
+distribution in an isolated copy, runs package metadata checks, requires the
+full test suite to pass with zero skips, and performs an isolated
+recorder-checked \LaTeX{} build.  A missing or skipped component produces a
+partial, non-authorizing report.
+
+The A43 analyzer separately rehashes its execution closure, raw files,
+sidecars, and replay; recomputes all tree disagreement and gap-ratio fields;
+checks every historical-input flag and official archive checksum; and reruns
+the portable endpoint checker.  Its submission manifest then binds the A42
+historical closure, A43 evidence, revised manuscript, and compiled PDF.  The
+A43 evidence audit deeply compares the recomputation and requires a full
+zero-skip test run. Author identities, declarations, public repository, hosted
+CI logs, and archival identifiers are distinct from that historical numerical
+audit. The later author-identified preprint and its public CI checks are
+described in the software-availability section; no DOI is claimed.
+
+Passing this graph can authorize the represented problem's linear-work endpoint
+verifier, the signed-certificate soundness and sharpness evidence, and measured
+throughput for explicitly named implementations under the recorded contract.
+It cannot authorize novelty of the reciprocal objective, a globally
+near-linear candidate solver, a universal fastest verified optimizer, MMFL
+training SOTA, or venue acceptance.  Internal SOC agreement, external
+completeness, independent-predicate replay, and application evidence are
+separate gates and are not substituted for one another.
+
+\section{A45 independent witnesses and exact output contract}
+\label{app:a45-checker}
+
+The A45 checker is a separate Python-standard-library implementation. It uses
+intervals $[a,b]2^{-160}$ with integer endpoints. Addition and negation are
+exact; products and quotients are rounded using integer floor/ceiling division;
+square-root endpoints use integer square root and an upward increment unless
+the upper radicand is a perfect square. A zero-containing divisor, nonpositive
+certified flow, malformed graph, changed payload, or unsupported dimension
+rejects. The 200,000-edge input limit is an audit-tool resource bound, not a
+claim about the production verifier. Python big-integer correctness remains
+part of its trusted computing base; this is not a formal proof assistant.
+
+For endpoint input, the checker reconstructs every binary64 number as its
+exact rational value, derives the distinguished marginal by exact balance,
+validates the supplied tree by its own adjacency traversal, and encloses the
+reciprocal KKT flow and leaf-elimination correction. It directly encloses
+$P(Z)$ and $D(y)$ and compares $P(Z)^+-D(y)^-$ with the exact represented
+tolerance. It does not trust a serialized production gap, solver status,
+production capability token, or production interval operation. The audit may
+be more conservative than a symbolic cancellation bound and is not part of
+the binary64 linear-work timing theorem.
+
+For conic-port witnesses, let $s_x,s_o$ and $R$ be the positive dyadic primal,
+objective and row scales. With lifted variables $(z,w,s,u,v)$, the equations
+are $RB(s_x z)=R\beta$, $u=2$, $s=z+w$, $v=z-w$ and the objective is
+$(s_xc)^\top z/s_o+(\mu/s_x)^\top w/s_o$. The checker reconstructs the dual
+slack from these equations, verifies each nonnegative-orthant entry and
+$d_s\ge0$, $d_s^2\ge d_u^2+d_v^2$ using exact rational arithmetic, and proves
+the claimed lower endpoint by weak duality with scale $s_o$. No exported
+lifted matrix or cone-residual summary carries authority.
+
+For the upper endpoint it treats the exported primal midpoint merely as a
+dyadic candidate, repairs its original marginal residual by rational tree
+elimination, checks all exact equations and positivity, and encloses its
+reciprocal objective below the claimed upper endpoint. This proves the
+original-input bracket even though it is not a proof that every compatibility
+routine implements all INTLAB semantics. Point-matrix, interval-right-hand-side
+tests with exact Gaussian-elimination corner solutions are an additional
+compatibility diagnostic, not the bracket's authority.
+
+The decision companion similarly turns a materialized numerical allocation
+into a separately checked rational allocation $\widehat Z$. Its numerator and
+denominator arrays explicitly identify the feasible vector consumed by the
+application. This vector need not equal the original implicit $Z$; positivity,
+$B\widehat Z=\beta$, and its own primal--dual gap are checked anew. For an
+input cap $C$, $P(\widehat Z)^+\le C$ proves a feasible policy below cap,
+$D(y)^->C$ proves the cap unattainable, and overlapping intervals return
+undecided. A sampler still needs a correct realization of these rational
+probabilities; neither these files nor a normalized binary64 approximation
+constitute a tested categorical sampler.

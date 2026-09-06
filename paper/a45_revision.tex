@@ -1,0 +1,162 @@
+\subsection{Independently witnessed, matched-accuracy revision}
+\label{sec:results-a45}
+
+A45 is an exploratory response to the preceding limitations, not a new
+preregistered confirmation of the already inspected A44 instances. A disjoint
+120-edge pilot (seed 45001, three families) tests SeDuMi tolerances
+$10^{-10},10^{-12},10^{-14}$ and retains all nine attempts. Matched, independently
+proved brackets occur in respectively 0/3, 3/3 and 2/3 cases, selecting
+$10^{-12}$ before the 18-instance rerun. The new runs use exactly the paired
+A42 problem fingerprints and requested $\varepsilon$ values, not an optimizer
+status or a floating planted objective as ground truth.
+
+\paragraph{Independent witnesses.}
+A standard-library-only checker uses integer-directed dyadic arithmetic at
+160 fractional bits. For endpoint bundles it directly encloses $P(Z)$ and
+$D(y)$, without the production interval backend or its cancellation identity.
+For each experimental VSDP-port bracket, it reconstructs the lifted dual
+inequalities from the original data, verifies the LP and squared Lorentz-cone
+conditions in exact rational arithmetic, and checks the correctly rescaled
+conic dual objective against $L$. Separately,
+exact rational leaf elimination of an exported primal midpoint supplies a
+positive feasible original flow whose outward objective bound is at most $U$.
+Thus the saved witnesses prove that particular original-input bracket even
+without trusting the port's interval linear solve. They do not validate every
+operation of the compatibility layer or establish a stock INTLAB result.
+Additional tests use ten genuinely exact dyadic KKT fixtures and 252 exact
+right-hand-side corner solves across 12 small linear systems; floating planted
+reference containment is never used as a correctness gate.
+
+\paragraph{Common accuracy and cost boundaries.}
+Both pipelines run in fresh single-thread processes under 300-second and
+4096-MiB sampled-RSS limits. Common MAT export is excluded; the port's external
+dyadic lift construction is charged separately. Verification time includes
+VSDP's internal perturbed re-solves, or CertQuota's cold tree/plan preparation
+and replay. The transfer test uses the same initial SeDuMi dual, without a
+CertQuota repair. Full pipeline time adds process startup and an independent
+witness-check process; these audited pipelines are distinct from warm replay
+throughput. Peak RSS below concerns the numerical worker, not the separate
+integer audit. Timings describe these implementations on the recorded host.
+
+\begin{table}[t]
+\centering\small
+\caption{A45 first-setting comparison; times are medians over all nine cells
+at each size, including accuracy failures. Port denotes only the experimental
+VSDP/Octave-interval implementation, whose linear-solve path densifies.
+CQ-transfer certifies all 18 initial SeDuMi duals; the full CQ column uses its
+own public cold candidate pipeline. These are not stock-VSDP speed estimates.}
+\label{tab:a45-matched}
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{rrrrrrr}
+\toprule
+$m$ & \multicolumn{2}{c}{Matched / 9} &
+\multicolumn{2}{c}{Verification (s)} & \multicolumn{2}{c}{Audited pipeline (s)}\\
+ & Port & CQ & Port & CQ-transfer & Port & CQ\\
+\midrule
+300 & \AFiveSmallPortPass & 9 & \AFiveSmallPortVerify & \AFiveSmallTransferVerify & \AFiveSmallPortPipeline & \AFiveSmallCQPipeline\\
+1000 & \AFiveMediumPortPass & 9 & \AFiveMediumPortVerify & \AFiveMediumTransferVerify & \AFiveMediumPortPipeline & \AFiveMediumCQPipeline\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+All 18 port brackets have independently checked witnesses;
+\AFivePortMatched/18 meet the common target, whereas both CertQuota's full
+pipeline and the unrepaired SeDuMi-dual transfer meet it in 18/18 cases.
+The remaining three port widths are 1.77--2.22 times their targets. A fixed
+second setting, $10^{-14}$, is tried for every first-setting failure, charging
+both attempts to the same time budget; it adds no matched success. All attempts
+are retained. This is not a lower bound on the accuracy obtainable by VSDP after
+other tuning. At 1000 edges, median worker RSS is
+\AFiveMediumPortRSS\ MiB for the port and \AFiveMediumCQRSS\ MiB for CertQuota;
+the dense compatibility path prevents attributing that difference to stock
+VSDP. The defensible computational conclusion is narrower: on these identical
+inputs, an original-array endpoint check accepts the same approximate duals
+with substantially less measured verification work than this executed conic
+path, at the stated common guarantee.
+
+\subsection{A historical decision workload with an explicit rational output}
+\label{sec:a45-decision}
+
+The revision uses three additional MovieLens history cutoffs
+$(0.45,0.55,0.65)$. Every support edge, reciprocal weight and processing proxy
+uses only pre-cutoff records. Client budgets are fixed to the represented value
+0.2. Genre quotas are specified before optimization as
+$(1-\theta)d^{\rm hist}+\theta(0.2n_{\rm left}/n_{\rm genre})\one$, with
+$\theta\in\{0,0.25\}$ and the same exact reduced-root convention. Historical
+rating counts $k_e$ define nonzero costs $c_e=\lambda k_e$; $\lambda$ is
+normalized so that baseline processing cost is approximately $0.1$ or $1$
+times baseline reciprocal cost. These are explicit task-design proxies, not
+measured production latencies. Raking supplies an approximate baseline, which
+is repaired and checked as an exactly feasible rational flow before it is
+used for the policy comparison.
+
+Let $[L_0,U_0]$ enclose that feasible baseline's objective. The pre-specified
+decision asks whether a feasible allocation can meet the cap $0.99L_0$;
+the requested gap is $10^{-8}(1+U_0)$. A rational allocation $\widehat Z$
+is exported with all numerators and denominators, rather than claimed to be
+bitwise feasible in binary64. Its independent checker tests $B\widehat
+Z=\beta$ exactly, strict positivity, and an objective interval. It returns
+``below cap'', ``cap infeasible'', or ``undecided'' according to the proved
+upper and lower endpoints, never a rounded point estimate. All
+\AFiveWorkloadAccepted/12 combinations certify, and all prove at least the
+requested 1\% improvement over their own feasible baseline. The conservative
+improvement bounds range approximately from \AFiveImprovementMin\% to
+\AFiveImprovementMax\%. This demonstrates a usable mathematical policy
+decision and a transferable exact allocation; it does not establish a
+statistical improvement in a deployed recommender or MMFL training system.
+The 12 combinations share one dataset, not 12 independent applications.
+
+\subsection{Hard starts and dynamic tree rebuilding}
+\label{sec:a45-hard}
+
+Nine new family--seed graphs (seeds 45101--45103) discard the generator's
+KKT-planted costs and replace them by independently drawn positive costs.
+Two reciprocal-weight spans, quota shocks, public cold starts and candidates
+within $10^{-10}$ relative slack of the dual-domain boundary give 36 valid
+hard-start cases (18 represented problems, two starts per problem). CertQuota
+independently certifies \AFiveColdAccepted/18 public cold starts and
+\AFiveBoundaryAccepted/18 near-boundary starts under a 20-second budget.
+All 18 deliberately out-of-domain controls are rejected. Failed candidates
+and repairs are retained separately from accepted endpoints; these tests do
+not replace the earlier warm-start scalability study.
+All ten valid failures receive an explicit optional follow-up: a
+CVXPY/Clarabel candidate with a 10-second budget followed by up to 10 seconds
+of the unchanged strict pipeline. Seven certify. The remaining three conic
+duals, despite an approximate optimal status, lie outside the original dual
+domain; convex retraction toward a public domain point and another bounded
+refinement certify all three. Thus 36/36 valid starting cases eventually have
+independently checked endpoints, while the original 26/36 result and all
+additional work remain visible. This is an exploratory repair study with extra
+budget, not a claim that the unchanged 20-second default succeeds universally.
+
+The same held-out family--seed grid then exercises eight changing rounds and
+three tolerances. Three explicit policies keep the initial maximum-conductance
+tree, rebuild it every round, or rebuild only after a failed replay. Each
+policy has 216 candidate--tolerance cells. Construction, cold router plans,
+preparation and retries are charged, policy order rotates, and candidate
+generation is recorded separately. Multiple rounds and tolerances are not
+independent graph samples.
+\begin{table}[t]
+\centering\small
+\caption{Held-out A45 dynamic-policy comparison. Times include unsuccessful
+checks and rebuilds but exclude the common candidate generator. These are
+finite policy observations, not a universal optimal-tree guarantee.}
+\label{tab:a45-trees}
+\begin{tabular}{lrrr}
+\toprule
+Policy & Accepted / 216 & Tree builds & Total policy time (s)\\
+\midrule
+Frozen tree & \AFiveFrozenAccepted & \AFiveFrozenBuilds & \AFiveFrozenSeconds\\
+Rebuild every round & \AFiveAlwaysAccepted & \AFiveAlwaysBuilds & \AFiveAlwaysSeconds\\
+Rebuild after rejection & \AFiveRetryAccepted & \AFiveRetryBuilds & \AFiveRetrySeconds\\
+\bottomrule
+\end{tabular}
+\end{table}
+The production default was already maximum conductance before this revision;
+the new evidence concerns when to reuse or rebuild, not the discovery of that
+default. Rejection-triggered rebuilding remains a measured policy with an
+explicit extra cost, not part of the fixed-topology complexity theorem.
+On this grid it matches the always-rebuild acceptance count using 66 rather
+than 216 builds, with 1.112 rather than 1.943 seconds total policy cost. The
+frozen policy is cheaper but rejects 38 cells. This makes the reuse--rebuild
+tradeoff explicit; no tree is asserted to be uniformly best.

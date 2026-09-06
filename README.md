@@ -61,6 +61,10 @@ The full local development suite passed 404 tests on Windows. The public
 installation check uses a clearly named 35-test core subset and three
 independently rechecked 1024-edge examples. See actual CI runs for platform
 results; a workflow definition is not evidence that a run passed.
+Public [run 34040622682](https://github.com/long-0228/certquota/actions/runs/34040622682)
+passed on both Ubuntu 24.04 and Windows 2022 at commit `dfd58e1d5644`.
+This closes the clean Linux installation check, not a full rerun of the
+historical experiments. See [the retained CI summary](ci/publication-ci.json).
 
 ## What is in this public snapshot?
 

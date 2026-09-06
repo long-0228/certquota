@@ -1,0 +1,412 @@
+\begin{thebibliography}{10}
+\providecommand{\url}[1]{{#1}}
+\providecommand{\urlprefix}{URL }
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{DOI~\discretionary{}{}{}#1}\else
+  \providecommand{\doi}{DOI~\discretionary{}{}{}\begingroup
+  \urlstyle{rm}\Url}\fi
+
+\bibitem{ahuja1993network}
+Ahuja, R.K., Magnanti, T.L., Orlin, J.B.: Network Flows: Theory, Algorithms,
+  and Applications.
+\newblock Prentice Hall (1993)
+
+\bibitem{altschuler2017nearlinear}
+Altschuler, J.M., Niles-Weed, J., Rigollet, P.: Near-linear time approximation
+  algorithms for optimal transport via sinkhorn iteration.
+\newblock In: Advances in Neural Information Processing Systems, vol.~30, pp.
+  1964--1974 (2017).
+\newblock
+  \urlprefix\url{https://proceedings.neurips.cc/paper_files/paper/2017/hash/491442df5f88c6aa018e86dac21d3606-Abstract.html}
+
+\bibitem{andersen2003conic}
+Andersen, E.D., Roos, C., Terlaky, T.: On implementing a primal-dual
+  interior-point method for conic quadratic optimization.
+\newblock Mathematical Programming \textbf{95}(2), 249--277 (2003).
+\newblock \doi{10.1007/s10107-002-0349-3}.
+\newblock \urlprefix\url{https://doi.org/10.1007/s10107-002-0349-3}
+
+\bibitem{askin2024fedast}
+Askin, B., Sharma, P., Joe-Wong, C., Joshi, G.: Fedast: Federated asynchronous
+  simultaneous training.
+\newblock In: Proceedings of the Fortieth Conference on Uncertainty in
+  Artificial Intelligence, \emph{Proceedings of Machine Learning Research},
+  vol. 244, pp. 138--172 (2024).
+\newblock \urlprefix\url{https://proceedings.mlr.press/v244/askin24a.html}
+
+\bibitem{bell2023pyamg}
+Bell, N., Olson, L.N., Schroder, J., Southworth, B.: {PyAMG}: Algebraic
+  multigrid solvers in python.
+\newblock Journal of Open Source Software \textbf{8}(87), 5495 (2023).
+\newblock \doi{10.21105/joss.05495}
+
+\bibitem{bentkamp2023verified}
+Bentkamp, A., Fern{\'a}ndez~Mir, R., Avigad, J.: Verified reductions for
+  optimization.
+\newblock In: Tools and Algorithms for the Construction and Analysis of
+  Systems, \emph{Lecture Notes in Computer Science}, vol. 13994, pp. 74--92.
+  Springer (2023).
+\newblock \doi{10.1007/978-3-031-30820-8_8}.
+\newblock \urlprefix\url{https://doi.org/10.1007/978-3-031-30820-8_8}
+
+\bibitem{bertsekas1997epsilon}
+Bertsekas, D.P., Polymenakos, L.C., Tseng, P.: An $\epsilon$-relaxation method
+  for separable convex cost network flow problems.
+\newblock SIAM Journal on Optimization \textbf{7}(3), 853--870 (1997).
+\newblock \doi{10.1137/S1052623495285886}
+
+\bibitem{bhuyan2022mmfl}
+Bhuyan, N., Moharir, S.: Multi-model federated learning.
+\newblock arXiv preprint arXiv:2201.02582  (2022)
+
+\bibitem{bhuyan2022provable}
+Bhuyan, N., Moharir, S., Joshi, G.: Multi-model federated learning with
+  provable guarantees.
+\newblock arXiv preprint arXiv:2207.04330  (2022)
+
+\bibitem{burns2026accuracy}
+Burns, M.X., Liang, J.: Accuracy certificates for convex optimization at
+  accelerated rates via primal--dual averaging (2026)
+
+\bibitem{castro2021huge}
+Castro, J., Nasini, S.: A specialized interior-point algorithm for huge minimum
+  convex cost flows in bipartite networks.
+\newblock European Journal of Operational Research \textbf{290}(3), 857--869
+  (2021).
+\newblock \doi{10.1016/j.ejor.2020.10.027}
+
+\bibitem{chauvet2011optimal}
+Chauvet, G., Bonn\'ery, D., Deville, J.C.: Optimal inclusion probabilities for
+  balanced sampling.
+\newblock Journal of Statistical Planning and Inference \textbf{141}(2),
+  984--994 (2011).
+\newblock \doi{10.1016/j.jspi.2010.09.005}
+
+\bibitem{chen2025maxflow}
+Chen, L., Kyng, R., Liu, Y.P., Peng, R., Probst~Gutenberg, M., Sachdeva, S.:
+  Maximum flow and minimum-cost flow in almost-linear time.
+\newblock Journal of the ACM \textbf{72}(3), 19:1--19:103 (2025).
+\newblock \doi{10.1145/3728631}.
+\newblock \urlprefix\url{https://arxiv.org/abs/2203.00671}
+
+\bibitem{chen2026graphot}
+Chen, Q., Cui, J., Dieci, L., Zhou, H.: Newton's method for optimal transport
+  problem on graphs (2026).
+\newblock \urlprefix\url{https://arxiv.org/abs/2605.07408}
+
+\bibitem{cipolla2024sparse}
+Cipolla, S., Gondzio, J., Zanetti, F.: A regularized interior point method for
+  sparse optimal transport on graphs.
+\newblock European Journal of Operational Research \textbf{319}(2), 413--426
+  (2024).
+\newblock \doi{10.1016/j.ejor.2023.11.027}
+
+\bibitem{dessein2018rot}
+Dessein, A., Papadakis, N., Rouas, J.L.: Regularized optimal transport and the
+  rot mover's distance.
+\newblock Journal of Machine Learning Research \textbf{19}(15), 1--53 (2018).
+\newblock \urlprefix\url{https://jmlr.org/papers/v19/17-361.html}
+
+\bibitem{diamandis2024convexflows}
+Diamandis, T., Angeris, G., Edelman, A.: Convex network flows.
+\newblock arXiv preprint arXiv:2404.00765  (2024).
+\newblock \urlprefix\url{https://arxiv.org/abs/2404.00765}
+
+\bibitem{diamanti2026market}
+Diamanti, M., Rahman, A.B., Charatsaris, P., Tsiropoulou, E.E., Papavassiliou,
+  S.: Resource allocation and pricing for multi-server multi-model federated
+  learning based on market equilibrium.
+\newblock Future Generation Computer Systems \textbf{175}, 108055 (2026).
+\newblock \doi{10.1016/j.future.2025.108055}.
+\newblock \urlprefix\url{https://doi.org/10.1016/j.future.2025.108055}
+
+\bibitem{diamond2016cvxpy}
+Diamond, S., Boyd, S.: {CVXPY}: A python-embedded modeling language for convex
+  optimization.
+\newblock Journal of Machine Learning Research \textbf{17}(83), 1--5 (2016).
+\newblock \urlprefix\url{https://jmlr.org/papers/v17/15-408.html}
+
+\bibitem{fraboni2021clustered}
+Fraboni, Y., Vidal, R., Kameni, L., Lorenzi, M.: Clustered sampling:
+  Low-variance and improved representativity for clients selection in federated
+  learning.
+\newblock In: Proceedings of the 38th International Conference on Machine
+  Learning, \emph{Proceedings of Machine Learning Research}, vol. 139, pp.
+  3407--3416 (2021).
+\newblock \urlprefix\url{https://proceedings.mlr.press/v139/fraboni21a.html}
+
+\bibitem{gandhi2006rounding}
+Gandhi, R., Khuller, S., Parthasarathy, S., Srinivasan, A.: Dependent rounding
+  and its applications to approximation algorithms.
+\newblock Journal of the ACM \textbf{53}(3), 324--360 (2006).
+\newblock \doi{10.1145/1147954.1147956}
+
+\bibitem{gong2025group}
+Gong, Z., Zhang, H., Siew, M., Joe-Wong, C., El-Azouzi, R.: Group-based client
+  sampling in multi-model federated learning.
+\newblock In: 2025 IEEE 101st Vehicular Technology Conference (VTC2025-Spring),
+  pp. 1--7 (2025).
+\newblock \doi{10.1109/VTC2025-SPRING65109.2025.11174649}
+
+\bibitem{goulart2026clarabel}
+Goulart, P.J., Chen, Y.: Clarabel: An interior-point solver for conic programs
+  with quadratic objectives.
+\newblock Mathematical Programming Computation  (2026).
+\newblock \doi{10.1007/s12532-026-00320-7}
+
+\bibitem{harper2015movielens}
+Harper, F.M., Konstan, J.A.: The {MovieLens} datasets: History and context.
+\newblock ACM Transactions on Interactive Intelligent Systems \textbf{5}(4),
+  19:1--19:19 (2015).
+\newblock \doi{10.1145/2827872}
+
+\bibitem{horvitz1952}
+Horvitz, D.G., Thompson, D.J.: A generalization of sampling without replacement
+  from a finite universe.
+\newblock Journal of the American Statistical Association \textbf{47}(260),
+  663--685 (1952)
+
+\bibitem{ibaraki1991dual}
+Ibaraki, S., Fukushima, M., Ibaraki, T.: Dual-based newton methods for
+  nonlinear minimum cost network flow problems.
+\newblock Journal of the Operations Research Society of Japan \textbf{34}(3),
+  263--286 (1991).
+\newblock \doi{10.15807/jorsj.34.263}.
+\newblock \urlprefix\url{https://doi.org/10.15807/jorsj.34.263}
+
+\bibitem{ieee7542019}
+IEEE: {IEEE Standard for Floating-Point Arithmetic} (2019).
+\newblock \doi{10.1109/IEEESTD.2019.8766229}
+
+\bibitem{jansson2004convex}
+Jansson, C.: A rigorous lower bound for the optimal value of convex
+  optimization problems.
+\newblock Journal of Global Optimization \textbf{28}(1), 121--137 (2004).
+\newblock \doi{10.1023/B:JOGO.0000006720.68398.8c}
+
+\bibitem{jansson2007conic}
+Jansson, C.: Guaranteed accuracy for conic programming problems in vector
+  lattices.
+\newblock arXiv preprint arXiv:0707.4366  (2007).
+\newblock \doi{10.48550/arXiv.0707.4366}.
+\newblock \urlprefix\url{https://arxiv.org/abs/0707.4366}
+
+\bibitem{jansson2009verified}
+Jansson, C.: On verified numerical computations in convex programming.
+\newblock Japan Journal of Industrial and Applied Mathematics
+  \textbf{26}(2--3), 337--363 (2009).
+\newblock \doi{10.1007/BF03186539}
+
+\bibitem{jansson2007rigorous}
+Jansson, C., Chaykin, D., Keil, C.: Rigorous error bounds for the optimal value
+  in semidefinite programming.
+\newblock SIAM Journal on Numerical Analysis \textbf{46}(1), 180--200 (2007).
+\newblock \doi{10.1137/050622870}
+
+\bibitem{vsdp2020}
+Jansson, C., Lange, M., Haerter, V., Ohlhus, K.T.: {VSDP 2020}: Verified
+  Semidefinite-Quadratic-Linear Programming Manual (2020).
+\newblock \urlprefix\url{https://vsdp.github.io/}
+
+\bibitem{johansson2017arb}
+Johansson, F.: Arb: Efficient arbitrary-precision midpoint-radius interval
+  arithmetic.
+\newblock IEEE Transactions on Computers \textbf{66}(8), 1281--1292 (2017).
+\newblock \doi{10.1109/TC.2017.2690633}
+
+\bibitem{katsura1989interior}
+Katsura, R., Fukushima, M., Ibaraki, T.: Interior methods for nonlinear minimum
+  cost network flow problems.
+\newblock Journal of the Operations Research Society of Japan \textbf{32}(2),
+  174--199 (1989).
+\newblock \doi{10.15807/jorsj.32.174}.
+\newblock \urlprefix\url{https://doi.org/10.15807/jorsj.32.174}
+
+\bibitem{kearfott1998feasible}
+Kearfott, R.B.: On proving existence of feasible points in equality constrained
+  optimization problems.
+\newblock Mathematical Programming \textbf{83}, 89--100 (1998).
+\newblock \doi{10.1007/BF02680551}
+
+\bibitem{kemertas2025truncated}
+Kemertas, M., Farahmand, A.m., Jepson, A.D.: A truncated newton method for
+  optimal transport.
+\newblock In: International Conference on Learning Representations (2025).
+\newblock \urlprefix\url{https://arxiv.org/abs/2504.02067}
+
+\bibitem{klincewicz1983}
+Klincewicz, J.G.: A newton method for convex separable network flow problems.
+\newblock Networks \textbf{13}(3), 427--442 (1983).
+\newblock \doi{10.1002/net.3230130310}
+
+\bibitem{klincewicz1989}
+Klincewicz, J.G.: Implementing an ``exact'' newton method for separable convex
+  transportation problems.
+\newblock Networks \textbf{19}(1), 95--105 (1989).
+\newblock \doi{10.1002/net.3230190108}
+
+\bibitem{kohlen2025verified}
+Kohlen, B., Sch\"affeler, M., Abdulaziz, M., Hartmanns, A., Lammich, P.: A
+  formally verified {IEEE 754} floating-point implementation of interval
+  iteration for {MDPs}.
+\newblock In: Computer Aided Verification, \emph{Lecture Notes in Computer
+  Science}, vol. 15932, pp. 122--146 (2025).
+\newblock \doi{10.1007/978-3-031-98679-6_6}
+
+\bibitem{lange2020verification}
+Lange, M.: Verification methods for conic linear programming problems.
+\newblock Nonlinear Theory and Its Applications, IEICE \textbf{11}(3), 327--358
+  (2020).
+\newblock \doi{10.1587/nolta.11.327}.
+\newblock \urlprefix\url{https://doi.org/10.1587/nolta.11.327}
+
+\bibitem{marklund2008early}
+Larsson, T., Marklund, J., Olsson, C., Patriksson, M.: Convergent lagrangian
+  heuristics for nonlinear minimum cost network flows.
+\newblock European Journal of Operational Research \textbf{189}(2), 324--346
+  (2008).
+\newblock \doi{10.1016/j.ejor.2007.06.005}.
+\newblock \urlprefix\url{https://doi.org/10.1016/j.ejor.2007.06.005}
+
+\bibitem{lee2025dual}
+Lee, J., Papp, D., Varga, A.: Dual certificates of primal cone membership
+  (2025).
+\newblock \doi{10.48550/arXiv.2506.12256}.
+\newblock \urlprefix\url{https://arxiv.org/abs/2506.12256}.
+\newblock Version 3, 25 March 2026; accepted in SIAM Journal on Optimization
+
+\bibitem{lin2025flammable}
+Lin, S., Pan, Z., Yao, Y., Noh, H., Zhang, P., Joe-Wong, C.: Flammable: A
+  multi-model federated learning framework with multi-model engagement and
+  adaptive batch sizes.
+\newblock arXiv preprint arXiv:2510.10380  (2025)
+
+\bibitem{livne2026nlf}
+Livne, O.E.: Nlf: A resistor-network framework and linear-time solver for
+  convex network-flow equilibria.
+\newblock arXiv preprint arXiv:2607.02041  (2026).
+\newblock \urlprefix\url{https://arxiv.org/abs/2607.02041}
+
+\bibitem{mcconnell2011certifying}
+McConnell, R.M., Mehlhorn, K., N{\"a}her, S., Schweitzer, P.: Certifying
+  algorithms.
+\newblock Computer Science Review \textbf{5}(2), 119--161 (2011).
+\newblock \doi{10.1016/j.cosrev.2010.09.009}
+
+\bibitem{nemirovski2010accuracy}
+Nemirovski, A., Onn, S., Rothblum, U.G.: Accuracy certificates for
+  computational problems with convex structure.
+\newblock Mathematics of Operations Research \textbf{35}(1), 52--78 (2010).
+\newblock \doi{10.1287/moor.1090.0427}
+
+\bibitem{pan2026ibsn}
+Pan, J., Li, J., Yan, M.: Inexact bregman sparse newton method for efficient
+  optimal transport.
+\newblock arXiv preprint arXiv:2603.07156  (2026).
+\newblock \urlprefix\url{https://arxiv.org/abs/2603.07156}
+
+\bibitem{papp2025fullnewton}
+Papp, D., Varga, A.: Interior-point algorithms with full newton steps for
+  nonsymmetric convex conic optimization.
+\newblock SIAM Journal on Optimization \textbf{35}(4), 2490--2517 (2025).
+\newblock \doi{10.1137/25M1736396}.
+\newblock \urlprefix\url{https://doi.org/10.1137/25M1736396}
+
+\bibitem{parshakova2025multiple}
+Parshakova, T., Bai, Y., van Ryzin, G., Boyd, S.: Multiple-response agents:
+  Fast, feasible, approximate primal recovery for dual optimization methods
+  (2025)
+
+\bibitem{rivest2023fixed}
+Rivest, L.P.: Statistical methods for sampling cross-classified populations
+  under constraints.
+\newblock Survey Methodology \textbf{49}(2), 347--362 (2023).
+\newblock
+  \urlprefix\url{https://www150.statcan.gc.ca/n1/pub/12-001-x/2023002/article/00011-eng.htm}
+
+\bibitem{rump2010verification}
+Rump, S.M.: Verification methods: Rigorous results using floating-point
+  arithmetic.
+\newblock Acta Numerica \textbf{19}, 287--449 (2010).
+\newblock \doi{10.1017/S096249291000005X}.
+\newblock \urlprefix\url{https://doi.org/10.1017/S096249291000005X}
+
+\bibitem{siew2025fair}
+Siew, M., Zhang, H., Park, J.I., Liu, Y., Ruan, Y., Su, L., Ioannidis, S., Yeh,
+  E., Joe-Wong, C.: Fair concurrent training of multiple models in federated
+  learning.
+\newblock IEEE Transactions on Networking \textbf{33}(6), 2881--2896 (2025).
+\newblock \doi{10.1109/TON.2025.3579500}
+
+\bibitem{szeider2026vipr}
+Szeider, S.: {VIPR} certificate construction from black-box {ILP} solvers.
+\newblock In: 32nd International Conference on Principles and Practice of
+  Constraint Programming (CP 2026), \emph{Leibniz International Proceedings in
+  Informatics (LIPIcs)}, vol. 379, pp. 52:1--52:14 (2026).
+\newblock \doi{10.4230/LIPIcs.CP.2026.52}
+
+\bibitem{tang2024safe}
+Tang, Z., Qiu, Y.: Safe and sparse newton method for entropic-regularized
+  optimal transport.
+\newblock In: Advances in Neural Information Processing Systems, vol.~37
+  (2024).
+\newblock \doi{10.52202/079017-4127}.
+\newblock
+  \urlprefix\url{https://proceedings.neurips.cc/paper_files/paper/2024/hash/ea8620683340facbd5f754dd169e0980-Abstract-Conference.html}
+
+\bibitem{tille2005optimal}
+Till\'e, Y., Favre, A.C.: Optimal allocation in balanced sampling.
+\newblock Statistics \& Probability Letters \textbf{74}(1), 31--37 (2005).
+\newblock \doi{10.1016/j.spl.2005.04.027}
+
+\bibitem{wang2025splr}
+Wang, C., Qiu, Y.: The sparse-plus-low-rank quasi-newton method for
+  entropic-regularized optimal transport.
+\newblock In: Proceedings of the 42nd International Conference on Machine
+  Learning, \emph{Proceedings of Machine Learning Research}, vol. 267, pp.
+  64202--64221 (2025).
+\newblock \urlprefix\url{https://proceedings.mlr.press/v267/wang25ck.html}
+
+\bibitem{weintraub1974primal}
+Weintraub, A.: A primal algorithm to solve network flow problems with convex
+  costs.
+\newblock Management Science \textbf{21}(1), 87--97 (1974).
+\newblock \doi{10.1287/mnsc.21.1.87}
+
+\bibitem{wright2023direct}
+Wright, S.E.: Direct solution of the normal equations in interior point methods
+  for convex transportation problems.
+\newblock Operations Research Letters \textbf{51}(5), 469--472 (2023).
+\newblock \doi{10.1016/j.orl.2023.07.001}
+
+\bibitem{wu2025pins}
+Wu, D., Liang, L., Yang, H.: Pins: Proximal iterations with sparse newton and
+  sinkhorn for optimal transport.
+\newblock arXiv preprint arXiv:2502.03749  (2025).
+\newblock \urlprefix\url{https://arxiv.org/abs/2502.03749}
+
+\bibitem{yoshida2026hypergraph}
+Yoshida, Y.: Solving hypergraph laplacian systems in almost-linear time (2026).
+\newblock \urlprefix\url{https://arxiv.org/abs/2604.27651}
+
+\bibitem{zhang2025optimal}
+Zhang, H., Gong, Z., Li, Z., Siew, M., Joe-Wong, C., El-Azouzi, R.: Towards
+  optimal heterogeneous client sampling in multi-model federated learning.
+\newblock arXiv preprint arXiv:2504.05138  (2025)
+
+\bibitem{zhang2024poster}
+Zhang, H., Li, Z., Gong, Z., Siew, M., Joe-Wong, C., El-Azouzi, R.: Poster:
+  Optimal variance-reduced client sampling for multiple models federated
+  learning.
+\newblock In: 2024 IEEE 44th International Conference on Distributed Computing
+  Systems, pp. 1446--1447 (2024).
+\newblock \doi{10.1109/ICDCS60910.2024.00144}.
+\newblock \urlprefix\url{https://doi.org/10.1109/ICDCS60910.2024.00144}
+
+\bibitem{zhao2025adaptive}
+Zhao, B., Wang, L., Liu, Z., Zhang, Z., Zhou, J., Chen, C., Kolar, M.: Adaptive
+  client sampling in federated learning via online learning with bandit
+  feedback.
+\newblock Journal of Machine Learning Research \textbf{26}(8), 1--67 (2025)
+
+\end{thebibliography}
